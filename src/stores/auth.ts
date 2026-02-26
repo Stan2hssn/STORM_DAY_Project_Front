@@ -45,7 +45,10 @@ export const useAuthStore = defineStore('auth', () => {
       body: JSON.stringify({ email, password }),
     })
     if (!res.ok) {
-      throw new Error(res.status === 401 ? 'Email ou mot de passe incorrect' : 'Erreur de connexion')
+      if (res.status >= 500) throw new Error('Email ou mot de passe incorrect')
+      const data = await res.json().catch(() => ({}))
+      const msg = typeof data.message === 'string' ? data.message : 'Email ou mot de passe incorrect'
+      throw new Error(msg)
     }
     const data = await res.json()
     setTokens(data.access_token, data.refresh_token, data.user)

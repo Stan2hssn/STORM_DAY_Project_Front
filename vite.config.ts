@@ -26,11 +26,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/auth': 'http://localhost:8080',
-      '/users': 'http://localhost:8080',
-      '/api': 'http://localhost:8080',
+      '/auth': 'http://localhost:30080',
+      '/users': 'http://localhost:30080',
+      '/api': 'http://localhost:30080',
       '/ws': {
-        target: 'ws://localhost:8080',
+        target: 'ws://localhost:30080',
         ws: true,
       },
     },
