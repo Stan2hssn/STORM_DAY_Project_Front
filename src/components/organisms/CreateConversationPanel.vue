@@ -73,6 +73,8 @@
 <script setup lang="ts">
 import UserPickerItem from '@/components/molecules/UserPickerItem.vue'
 import type { CreateConversationPayload, DirectoryUser } from '@/types/chat'
+import { api } from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps<{
@@ -85,21 +87,49 @@ const emit = defineEmits<{
   create: [payload: CreateConversationPayload]
 }>()
 
+const auth = useAuthStore()
 const query = ref('')
 const groupName = ref('')
 const selectedIds = ref<string[]>([])
+const searchResults = ref<DirectoryUser[]>([])
 
-const filteredUsers = computed(() => {
-  const search = query.value.trim().toLowerCase()
+interface SearchUser {
+  id: string
+  username: string
+  display_name: string
+  avatar_url?: string
+}
 
-  if (!search) {
-    return props.users
+async function searchUsers(q: string) {
+  if (!q.trim()) {
+    searchResults.value = []
+    return
   }
+  try {
+    const results = await api.get<SearchUser[]>(`/users/search?q=${encodeURIComponent(q)}`)
+    searchResults.value = results
+      .filter((u) => u.id !== auth.user?.id)
+      .map((u) => ({
+        id: u.id,
+        name: u.display_name,
+        handle: u.username,
+        avatar: u.display_name.slice(0, 2).toUpperCase(),
+        status: 'offline' as const,
+      }))
+  } catch {
+    searchResults.value = []
+  }
+}
 
-  return props.users.filter((user) => {
-    return user.name.toLowerCase().includes(search) || user.handle.toLowerCase().includes(search)
-  })
+let debounceTimer: ReturnType<typeof setTimeout>
+watch(query, (val) => {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => searchUsers(val), 300)
 })
+
+const filteredUsers = computed(() =>
+  query.value.trim() ? searchResults.value : props.users
+)
 
 const isGroup = computed(() => selectedIds.value.length > 1)
 const canCreate = computed(() => selectedIds.value.length > 0)
@@ -108,6 +138,7 @@ function resetState() {
   query.value = ''
   groupName.value = ''
   selectedIds.value = []
+  searchResults.value = []
 }
 
 function toggleUser(userId: string) {
@@ -115,7 +146,6 @@ function toggleUser(userId: string) {
     selectedIds.value = selectedIds.value.filter((id) => id !== userId)
     return
   }
-
   selectedIds.value = [...selectedIds.value, userId]
 }
 
@@ -125,10 +155,7 @@ function handleClose() {
 }
 
 function handleCreate() {
-  if (!canCreate.value) {
-    return
-  }
-
+  if (!canCreate.value) return
   emit('create', {
     participantIds: selectedIds.value,
     name: isGroup.value ? groupName.value.trim() : undefined
@@ -137,8 +164,6 @@ function handleCreate() {
 }
 
 watch(() => props.open, (isOpen) => {
-  if (!isOpen) {
-    resetState()
-  }
+  if (!isOpen) resetState()
 })
 </script>

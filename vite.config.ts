@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [
     vue(),
     ui({
-      router: false,
+      router: true,
       colorMode: false
     }),
     vueDevTools(
@@ -22,6 +22,17 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
+    },
+  },
+  server: {
+    proxy: {
+      '/auth': 'http://localhost:8080',
+      '/users': 'http://localhost:8080',
+      '/api': 'http://localhost:8080',
+      '/ws': {
+        target: 'ws://localhost:8080',
+        ws: true,
+      },
     },
   },
 });

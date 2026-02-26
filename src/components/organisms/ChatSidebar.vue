@@ -10,13 +10,34 @@
             {{ currentAccount?.name }} - {{ currentAccount?.role }}
           </p>
         </div>
-        <UButton
-          icon="i-lucide-square-pen"
-          color="neutral"
-          variant="ghost"
-          :ui="{ base: 'text-[#9fb0ba] hover:bg-[#2a3942]' }"
-          @click="createConversationOpen = true"
-        />
+        <div class="flex items-center gap-1">
+          <UButton
+            icon="i-lucide-square-pen"
+            color="neutral"
+            variant="ghost"
+            :ui="{ base: 'text-[#9fb0ba] hover:bg-[#2a3942]' }"
+            @click="createConversationOpen = true"
+          />
+          <UButton
+            icon="i-lucide-log-out"
+            color="neutral"
+            variant="ghost"
+            :ui="{ base: 'text-[#9fb0ba] hover:bg-[#2a3942]' }"
+            @click="handleLogout"
+          />
+        </div>
+      </div>
+
+      <!-- User connecté -->
+      <div v-if="auth.user" class="mb-3 flex items-center gap-2 rounded-lg bg-[#202c33] px-3 py-2">
+        <div class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white" style="background: #00a884;">
+          {{ auth.user.display_name.slice(0, 2).toUpperCase() }}
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-medium text-[#e9edef]">{{ auth.user.display_name }}</p>
+          <p class="truncate text-xs text-[#8696a0]">@{{ auth.user.username }}</p>
+        </div>
+        <span class="h-2 w-2 rounded-full bg-[#00a884]" title="Connecté" />
       </div>
 
       <div class="chat-scroll mb-3 flex gap-2 overflow-x-auto pb-1">
@@ -60,7 +81,12 @@ import AccountChip from '@/components/molecules/AccountChip.vue'
 import ConversationItem from '@/components/molecules/ConversationItem.vue'
 import CreateConversationPanel from '@/components/organisms/CreateConversationPanel.vue'
 import type { Account, Conversation, CreateConversationPayload, DirectoryUser } from '@/types/chat'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 import { computed, ref } from 'vue'
+
+const auth = useAuthStore()
+const router = useRouter()
 
 const emit = defineEmits<{
   selectConversation: [conversationId: string]
@@ -97,5 +123,10 @@ const currentAccount = computed(() => {
 function handleCreateConversation(payload: CreateConversationPayload) {
   emit('createConversation', payload)
   createConversationOpen.value = false
+}
+
+async function handleLogout() {
+  await auth.logout()
+  router.push('/login')
 }
 </script>
