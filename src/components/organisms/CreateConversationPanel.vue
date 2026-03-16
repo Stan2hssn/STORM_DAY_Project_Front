@@ -33,7 +33,7 @@
             />
 
             <UInput
-              v-if="isGroup"
+              v-if="canCreate"
               v-model="groupName"
               placeholder="Group name (optional)"
               :ui="{ base: 'bg-[#172833] ring-white/10 text-[#d9dee0] placeholder:text-[#6f7c85]' }"

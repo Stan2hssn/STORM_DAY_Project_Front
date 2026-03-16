@@ -15,32 +15,53 @@
     @switch-account="setActiveAccount"
     @create-conversation="createConversation"
     @send-message="sendMessage"
+    @open-members="membersOpen = true"
+  />
+
+  <GroupMembersPanel
+    :open="membersOpen"
+    :conversation-id="activeConversation?.id ?? ''"
+    :current-user-id="auth.user?.id ?? ''"
+    :group-name="activeConversation?.name ?? ''"
+    @close="membersOpen = false"
+    @member-removed="(id) => removeMember(activeConversation?.id ?? '', id)"
+    @group-renamed="(name) => renameConversation(activeConversation?.id ?? '', name)"
+    @left="leaveGroup(activeConversation?.id ?? '')"
+    @deleted="deleteGroup(activeConversation?.id ?? '')"
   />
 </template>
 
 <script setup lang="ts">
 import ChatLayoutTemplate from '@/components/templates/ChatLayoutTemplate.vue'
+import GroupMembersPanel from '@/components/organisms/GroupMembersPanel.vue'
 import { useChatWorkspace } from '@/composables/useChatWorkspace'
-import { computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { computed, ref } from 'vue'
+
+const auth = useAuthStore()
+const membersOpen = ref(false)
 
 const {
   accounts,
-  activeAccount,
   activeAccountId,
   activeConversation,
   activeMessages,
   conversations,
   createConversation,
+  deleteGroup,
   directoryUsers,
   memberRail,
   membersLabel,
+  leaveGroup,
+  removeMember,
+  renameConversation,
   sendMessage,
   setActiveAccount,
   setActiveConversation,
   systemMessage
 } = useChatWorkspace()
 
-const chatName = computed(() => activeConversation.value?.name ?? 'New conversation')
+const chatName = computed(() => activeConversation.value?.name ?? '')
 const chatAvatar = computed(() => chatName.value.slice(0, 2).toUpperCase())
-const subtitle = computed(() => activeAccount.value?.role ?? 'Account')
+const subtitle = computed(() => activeConversation.value?.isGroup ? 'Group' : 'Private')
 </script>

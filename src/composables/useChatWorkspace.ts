@@ -21,12 +21,26 @@ interface GroupApi {
   updated_at: number
 }
 
+interface GroupMemberApi {
+  id: number
+  user_id: string
+  conversation_id: number
+  role: number
+  created_at: number
+}
+
 interface MessageApi {
   id: number
   sender_id: string
   conversation_id: number
   content: string
   created_at: number
+}
+
+interface UserApi {
+  id: string
+  username: string
+  display_name: string
 }
 
 function formatTime(date = new Date()): string {
@@ -49,10 +63,10 @@ function groupToConversation(group: GroupApi): Conversation {
   }
 }
 
-function apiToMessage(msg: MessageApi, currentUserId: string): Message {
+function apiToMessage(msg: MessageApi, currentUserId: string, namesCache: Map<string, string>): Message {
   return {
     id: String(msg.id),
-    author: msg.sender_id,
+    author: namesCache.get(msg.sender_id) ?? msg.sender_id.slice(0, 8),
     text: msg.content,
     time: formatTime(new Date(msg.created_at * 1000)),
     side: msg.sender_id === currentUserId ? 'right' : 'left'
@@ -67,8 +81,27 @@ export function useChatWorkspace() {
   const messagesByConversation = ref<Record<string, Message[]>>({})
   const activeAccountId = ref(accounts.value[0]?.id ?? '')
   const activeConversationId = ref('')
+  const namesCache = new Map<string, string>()
 
   let ws: WebSocket | null = null
+
+  function cacheCurrentUser() {
+    if (auth.user?.id) {
+      namesCache.set(auth.user.id, auth.user.display_name ?? auth.user.username ?? 'Me')
+    }
+  }
+
+  async function fetchAndCacheUser(userId: string): Promise<string> {
+    if (namesCache.has(userId)) return namesCache.get(userId)!
+    try {
+      const user = await api.get<UserApi>(`/users/${userId}`)
+      const name = user.display_name ?? user.username ?? userId.slice(0, 8)
+      namesCache.set(userId, name)
+      return name
+    } catch {
+      return userId.slice(0, 8)
+    }
+  }
 
   function connectWebSocket() {
     if (!auth.accessToken) return
@@ -83,17 +116,23 @@ export function useChatWorkspace() {
         const msg = JSON.parse(event.data)
         if (msg.action === 'message' && msg.room && msg.content) {
           const conversationId = msg.room.replace(/^group:/, '')
+          const senderId = msg.user ?? ''
+          const authorName = namesCache.get(senderId) ?? senderId.slice(0, 8)
           const newMessage: Message = {
             id: `m-${Date.now()}`,
-            author: msg.user ?? 'Unknown',
+            author: authorName,
             text: msg.content,
             time: formatTime(),
-            side: msg.user === auth.user?.id ? 'right' : 'left'
+            side: senderId === auth.user?.id ? 'right' : 'left'
           }
           messagesByConversation.value[conversationId] = [
             ...(messagesByConversation.value[conversationId] ?? []),
             newMessage
           ]
+          // Resolve name async if not cached
+          if (senderId && !namesCache.has(senderId)) {
+            fetchAndCacheUser(senderId)
+          }
         }
       } catch {
         // ignore malformed frames
@@ -123,13 +162,30 @@ export function useChatWorkspace() {
     }
   }
 
+  async function loadGroupMembers(conversationId: string) {
+    try {
+      const res = await api.get<{ ok: boolean; data: GroupMemberApi[] }>(`/api/groups/${conversationId}/members`)
+      if (res.ok && res.data) {
+        const memberIds = res.data.map((m) => m.user_id)
+        // Update participantIds on the conversation
+        conversations.value = conversations.value.map((c) =>
+          c.id === conversationId ? { ...c, participantIds: memberIds } : c
+        )
+        // Populate name cache for all members
+        await Promise.all(memberIds.map((id) => fetchAndCacheUser(id)))
+      }
+    } catch {
+      // silent fail
+    }
+  }
+
   async function loadMessages(conversationId: string) {
     try {
       const res = await api.get<{ ok: boolean; data: MessageApi[] }>(`/api/messages?conversation_id=${conversationId}`)
       if (res.ok && res.data) {
         messagesByConversation.value[conversationId] = res.data.map((m) =>
-          apiToMessage(m, auth.user?.id ?? '')
-        )
+          apiToMessage(m, auth.user?.id ?? '', namesCache)
+        ).reverse()
       }
     } catch {
       // silent fail
@@ -138,10 +194,14 @@ export function useChatWorkspace() {
 
   watch(activeConversationId, async (newId) => {
     joinRoom(newId)
-    if (newId) await loadMessages(newId)
+    if (newId) {
+      await loadGroupMembers(newId)
+      await loadMessages(newId)
+    }
   })
 
   onMounted(async () => {
+    cacheCurrentUser()
     connectWebSocket()
     if (auth.isAuthenticated) {
       await loadGroups()
@@ -174,12 +234,12 @@ export function useChatWorkspace() {
       .map((id) => usersById.get(id))
       .filter((user): user is DirectoryUser => Boolean(user))
 
-    if (participants.length === 0) return
-
-    const isGroup = participants.length > 1
-    const generatedName = isGroup
-      ? participants.slice(0, 3).map((user) => user.name).join(', ')
-      : (participants[0]?.name ?? 'New conversation')
+    const isGroup = participantIds.length > 1
+    const generatedName = participants.length > 0
+      ? (isGroup
+          ? participants.slice(0, 3).map((user) => user.name).join(', ')
+          : (participants[0]?.name ?? 'New conversation'))
+      : 'New conversation'
     const conversationName = payload.name?.trim() || generatedName
     const now = formatTime()
 
@@ -192,12 +252,19 @@ export function useChatWorkspace() {
 
       const conversationId = String(res.data.id)
 
+      // Add participants as members (role: 0)
+      await Promise.all(
+        participantIds.map((userId) =>
+          api.post(`/api/groups/${conversationId}/members`, { user_id: userId, role: 0 }).catch(() => {})
+        )
+      )
+
       const newConversation: Conversation = {
         id: conversationId,
         name: conversationName,
         preview: isGroup ? 'Group created' : 'Conversation created',
         time: now,
-        participantIds: participants.map((p) => p.id),
+        participantIds: [...new Set([...(auth.user?.id ? [auth.user.id] : []), ...participantIds])],
         isGroup,
         active: true
       }
@@ -221,11 +288,11 @@ export function useChatWorkspace() {
 
     if (!cleaned || !conversationId) return
 
-    const account = accounts.value.find((entry) => entry.id === activeAccountId.value)
     const now = formatTime()
+    const currentUserName = auth.user?.display_name ?? auth.user?.username ?? 'Me'
     const newMessage: Message = {
       id: `m-${Date.now()}`,
-      author: account?.name ?? 'You',
+      author: currentUserName,
       text: cleaned,
       time: now,
       side: 'right'
@@ -247,9 +314,47 @@ export function useChatWorkspace() {
       ...updatedConversations.filter((c) => c.id !== conversationId)
     ]
 
-    api.post('/api/messages', { conversation_id: Number(conversationId), content: cleaned }).catch(() => {
+    api.post('/api/messages', { conversation_id: Number(conversationId), content: cleaned, sender_id: auth.user?.id ?? '' }).catch(() => {
       // message already shown locally — silent fail
     })
+  }
+
+  async function deleteGroup(conversationId: string) {
+    await api.delete(`/api/groups/${conversationId}`)
+    conversations.value = conversations.value.filter((c) => c.id !== conversationId)
+    if (activeConversationId.value === conversationId) {
+      activeConversationId.value = conversations.value[0]?.id ?? ''
+    }
+  }
+
+  async function leaveGroup(conversationId: string) {
+    await api.post(`/api/groups/${conversationId}/leave`, {})
+    conversations.value = conversations.value.filter((c) => c.id !== conversationId)
+    if (activeConversationId.value === conversationId) {
+      activeConversationId.value = conversations.value[0]?.id ?? ''
+    }
+  }
+
+  async function renameConversation(conversationId: string, name: string) {
+    try {
+      await api.put(`/api/groups/${conversationId}`, { name })
+      conversations.value = conversations.value.map((c) =>
+        c.id === conversationId ? { ...c, name } : c
+      )
+    } catch { /* silent */ }
+  }
+
+  async function removeMember(conversationId: string, userId: string) {
+    await api.delete(`/api/groups/${conversationId}/members/${userId}`)
+    conversations.value = conversations.value.map((c) =>
+      c.id === conversationId
+        ? { ...c, participantIds: c.participantIds.filter((id) => id !== userId) }
+        : c
+    )
+  }
+
+  async function updateMemberRole(conversationId: string, userId: string, role: number) {
+    await api.patch(`/api/groups/${conversationId}/members/${userId}/role`, { role })
   }
 
   const activeConversation = computed(() => {
@@ -299,8 +404,13 @@ export function useChatWorkspace() {
     membersLabel,
     systemMessage,
     createConversation,
+    deleteGroup,
+    leaveGroup,
+    removeMember,
+    renameConversation,
     sendMessage,
     setActiveAccount,
-    setActiveConversation
+    setActiveConversation,
+    updateMemberRole
   }
 }

@@ -21,6 +21,7 @@ declare module 'vue' {
     ConversationItem: typeof import('./src/components/molecules/ConversationItem.vue')['default']
     CreateConversationPanel: typeof import('./src/components/organisms/CreateConversationPanel.vue')['default']
     DateDivider: typeof import('./src/components/molecules/DateDivider.vue')['default']
+    GroupMembersPanel: typeof import('./src/components/organisms/GroupMembersPanel.vue')['default']
     IconCommunity: typeof import('./src/components/icons/IconCommunity.vue')['default']
     IconDocumentation: typeof import('./src/components/icons/IconDocumentation.vue')['default']
     IconEcosystem: typeof import('./src/components/icons/IconEcosystem.vue')['default']

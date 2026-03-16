@@ -40,16 +40,6 @@
         <span class="h-2 w-2 rounded-full bg-[#00a884]" title="Connecté" />
       </div>
 
-      <div class="chat-scroll mb-3 flex gap-2 overflow-x-auto pb-1">
-        <AccountChip
-          v-for="account in props.accounts"
-          :key="account.id"
-          :account="account"
-          :active="props.currentAccountId === account.id"
-          @select="emit('switchAccount', account.id)"
-        />
-      </div>
-
       <UInput
         v-model="conversationSearch"
         placeholder="Search"
@@ -77,7 +67,6 @@
 </template>
 
 <script setup lang="ts">
-import AccountChip from '@/components/molecules/AccountChip.vue'
 import ConversationItem from '@/components/molecules/ConversationItem.vue'
 import CreateConversationPanel from '@/components/organisms/CreateConversationPanel.vue'
 import type { Account, Conversation, CreateConversationPayload, DirectoryUser } from '@/types/chat'

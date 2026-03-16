@@ -22,6 +22,7 @@
         :system-message="systemMessage"
         :subtitle="subtitle"
         @send="(text) => emit('sendMessage', text)"
+        @open-members="emit('openMembers')"
       />
 
       <ChatMembersRail :members="memberRail" />
@@ -60,5 +61,6 @@ const emit = defineEmits<{
   switchAccount: [accountId: string]
   createConversation: [payload: CreateConversationPayload]
   sendMessage: [text: string]
+  openMembers: []
 }>()
 </script>

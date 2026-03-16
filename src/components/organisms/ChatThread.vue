@@ -14,8 +14,7 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <IconGhostButton icon="i-lucide-user-plus" />
-        <IconGhostButton icon="i-lucide-search" />
+        <IconGhostButton icon="i-lucide-users" @click="emit('openMembers')" />
         <IconGhostButton icon="i-lucide-ellipsis-vertical" />
       </div>
     </header>
@@ -59,5 +58,6 @@ withDefaults(defineProps<{
 
 const emit = defineEmits<{
   send: [text: string]
+  openMembers: []
 }>()
 </script>
