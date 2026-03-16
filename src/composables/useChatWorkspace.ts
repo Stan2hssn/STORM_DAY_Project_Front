@@ -1,9 +1,9 @@
 import {
   accountsSeed,
-  conversationsSeed,
   directoryUsersSeed,
-  messagesByConversationSeed
 } from '@/data/chat.mock'
+import { api } from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
 import type {
   Account,
   Conversation,
@@ -11,7 +11,23 @@ import type {
   DirectoryUser,
   Message
 } from '@/types/chat'
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+
+interface GroupApi {
+  id: number
+  name: string
+  created_by: string
+  created_at: number
+  updated_at: number
+}
+
+interface MessageApi {
+  id: number
+  sender_id: string
+  conversation_id: number
+  content: string
+  created_at: number
+}
 
 function formatTime(date = new Date()): string {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -21,25 +37,120 @@ function toConversationPreview(text: string): string {
   return text.length <= 42 ? text : `${text.slice(0, 39)}...`
 }
 
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+function groupToConversation(group: GroupApi): Conversation {
+  return {
+    id: String(group.id),
+    name: group.name,
+    preview: '',
+    time: formatTime(new Date(group.created_at * 1000)),
+    participantIds: [],
+    isGroup: true,
+    active: false
+  }
+}
+
+function apiToMessage(msg: MessageApi, currentUserId: string): Message {
+  return {
+    id: String(msg.id),
+    author: msg.sender_id,
+    text: msg.content,
+    time: formatTime(new Date(msg.created_at * 1000)),
+    side: msg.sender_id === currentUserId ? 'right' : 'left'
+  }
 }
 
 export function useChatWorkspace() {
+  const auth = useAuthStore()
   const accounts = ref<Account[]>(accountsSeed.map((account) => ({ ...account })))
   const directoryUsers = ref<DirectoryUser[]>(directoryUsersSeed.map((user) => ({ ...user })))
-  const conversations = ref<Conversation[]>(conversationsSeed.map((conversation) => ({ ...conversation })))
-  const messagesByConversation = ref<Record<string, Message[]>>(structuredClone(messagesByConversationSeed))
+  const conversations = ref<Conversation[]>([])
+  const messagesByConversation = ref<Record<string, Message[]>>({})
   const activeAccountId = ref(accounts.value[0]?.id ?? '')
-  const activeConversationId = ref(
-    conversations.value.find((conversation) => conversation.active)?.id
-    ?? conversations.value[0]?.id
-    ?? ''
-  )
+  const activeConversationId = ref('')
+
+  let ws: WebSocket | null = null
+
+  function connectWebSocket() {
+    if (!auth.accessToken) return
+    ws = new WebSocket(`/ws?token=${auth.accessToken}`)
+
+    ws.onopen = () => {
+      joinRoom(activeConversationId.value)
+    }
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data)
+        if (msg.action === 'message' && msg.room && msg.content) {
+          const conversationId = msg.room.replace(/^group:/, '')
+          const newMessage: Message = {
+            id: `m-${Date.now()}`,
+            author: msg.user ?? 'Unknown',
+            text: msg.content,
+            time: formatTime(),
+            side: msg.user === auth.user?.id ? 'right' : 'left'
+          }
+          messagesByConversation.value[conversationId] = [
+            ...(messagesByConversation.value[conversationId] ?? []),
+            newMessage
+          ]
+        }
+      } catch {
+        // ignore malformed frames
+      }
+    }
+
+    ws.onclose = () => {
+      ws = null
+    }
+  }
+
+  function joinRoom(conversationId: string) {
+    if (ws?.readyState === WebSocket.OPEN && conversationId) {
+      ws.send(JSON.stringify({ action: 'join', room: `group:${conversationId}` }))
+    }
+  }
+
+  async function loadGroups() {
+    try {
+      const res = await api.get<{ ok: boolean; data: GroupApi[] }>('/api/groups')
+      if (res.ok && res.data?.length) {
+        conversations.value = res.data.map((g, i) => ({ ...groupToConversation(g), active: i === 0 }))
+        activeConversationId.value = String(res.data[0]?.id ?? '')
+      }
+    } catch {
+      // silent fail — liste vide
+    }
+  }
+
+  async function loadMessages(conversationId: string) {
+    try {
+      const res = await api.get<{ ok: boolean; data: MessageApi[] }>(`/api/messages?conversation_id=${conversationId}`)
+      if (res.ok && res.data) {
+        messagesByConversation.value[conversationId] = res.data.map((m) =>
+          apiToMessage(m, auth.user?.id ?? '')
+        )
+      }
+    } catch {
+      // silent fail
+    }
+  }
+
+  watch(activeConversationId, async (newId) => {
+    joinRoom(newId)
+    if (newId) await loadMessages(newId)
+  })
+
+  onMounted(async () => {
+    connectWebSocket()
+    if (auth.isAuthenticated) {
+      await loadGroups()
+    }
+  })
+
+  onUnmounted(() => {
+    ws?.close()
+  })
 
   function setActiveConversation(conversationId: string) {
     activeConversationId.value = conversationId
@@ -54,21 +165,16 @@ export function useChatWorkspace() {
     activeAccountId.value = accountId
   }
 
-  function createConversation(payload: CreateConversationPayload) {
+  async function createConversation(payload: CreateConversationPayload) {
     const participantIds = [...new Set(payload.participantIds)].filter(Boolean)
-
-    if (participantIds.length === 0) {
-      return
-    }
+    if (participantIds.length === 0) return
 
     const usersById = new Map(directoryUsers.value.map((user) => [user.id, user]))
     const participants = participantIds
       .map((id) => usersById.get(id))
       .filter((user): user is DirectoryUser => Boolean(user))
 
-    if (participants.length === 0) {
-      return
-    }
+    if (participants.length === 0) return
 
     const isGroup = participants.length > 1
     const generatedName = isGroup
@@ -76,46 +182,44 @@ export function useChatWorkspace() {
       : (participants[0]?.name ?? 'New conversation')
     const conversationName = payload.name?.trim() || generatedName
     const now = formatTime()
-    const baseId = slugify(conversationName) || `conv-${Date.now()}`
-    const conversationId = `conv-${Date.now()}-${baseId}`
 
-    const newConversation: Conversation = {
-      id: conversationId,
-      name: conversationName,
-      preview: isGroup ? 'Group created' : 'Conversation created',
-      time: now,
-      participantIds: participants.map((participant) => participant.id),
-      isGroup,
-      active: true
-    }
+    try {
+      const res = await api.post<{ ok: boolean; data: GroupApi }>('/api/groups', {
+        name: conversationName
+      })
 
-    conversations.value = [
-      newConversation,
-      ...conversations.value.map((conversation) => ({ ...conversation, active: false }))
-    ]
+      if (!res.ok || !res.data) return
 
-    messagesByConversation.value[conversationId] = [
-      {
-        id: `m-${Date.now()}`,
-        author: 'System',
-        text: isGroup
-          ? `Group "${conversationName}" created with ${participants.length} members`
-          : `Conversation with ${conversationName} created`,
+      const conversationId = String(res.data.id)
+
+      const newConversation: Conversation = {
+        id: conversationId,
+        name: conversationName,
+        preview: isGroup ? 'Group created' : 'Conversation created',
         time: now,
-        side: 'left'
+        participantIds: participants.map((p) => p.id),
+        isGroup,
+        active: true
       }
-    ]
 
-    activeConversationId.value = conversationId
+      conversations.value = [
+        newConversation,
+        ...conversations.value.map((c) => ({ ...c, active: false }))
+      ]
+
+      messagesByConversation.value[conversationId] = []
+      activeConversationId.value = conversationId
+      joinRoom(conversationId)
+    } catch {
+      // silent fail
+    }
   }
 
   function sendMessage(text: string) {
     const cleaned = text.trim()
     const conversationId = activeConversationId.value
 
-    if (!cleaned || !conversationId) {
-      return
-    }
+    if (!cleaned || !conversationId) return
 
     const account = accounts.value.find((entry) => entry.id === activeAccountId.value)
     const now = formatTime()
@@ -133,22 +237,19 @@ export function useChatWorkspace() {
     ]
 
     const updatedConversations = conversations.value.map((conversation) => {
-      if (conversation.id !== conversationId) {
-        return conversation
-      }
-
-      return {
-        ...conversation,
-        preview: toConversationPreview(cleaned),
-        time: now
-      }
+      if (conversation.id !== conversationId) return conversation
+      return { ...conversation, preview: toConversationPreview(cleaned), time: now }
     })
 
-    const activeConversation = updatedConversations.find((conversation) => conversation.id === conversationId)
+    const activeConversation = updatedConversations.find((c) => c.id === conversationId)
     conversations.value = [
       ...(activeConversation ? [activeConversation] : []),
-      ...updatedConversations.filter((conversation) => conversation.id !== conversationId)
+      ...updatedConversations.filter((c) => c.id !== conversationId)
     ]
+
+    api.post('/api/messages', { conversation_id: Number(conversationId), content: cleaned }).catch(() => {
+      // message already shown locally — silent fail
+    })
   }
 
   const activeConversation = computed(() => {
@@ -162,10 +263,7 @@ export function useChatWorkspace() {
   })
 
   const activeMessages = computed(() => {
-    if (!activeConversationId.value) {
-      return []
-    }
-
+    if (!activeConversationId.value) return []
     return messagesByConversation.value[activeConversationId.value] ?? []
   })
 
@@ -175,10 +273,7 @@ export function useChatWorkspace() {
   })
 
   const memberRail = computed(() => {
-    if (!activeConversation.value) {
-      return []
-    }
-
+    if (!activeConversation.value) return []
     const usersById = new Map(directoryUsers.value.map((user) => [user.id, user]))
     return activeConversation.value.participantIds
       .map((id) => usersById.get(id)?.avatar ?? id.slice(0, 2).toUpperCase())
@@ -186,10 +281,7 @@ export function useChatWorkspace() {
   })
 
   const systemMessage = computed(() => {
-    if (!activeConversation.value) {
-      return ''
-    }
-
+    if (!activeConversation.value) return ''
     return activeConversation.value.isGroup
       ? `You created ${activeConversation.value.name}`
       : `Private conversation with ${activeConversation.value.name}`
