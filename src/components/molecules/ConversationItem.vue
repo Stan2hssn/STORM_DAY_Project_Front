@@ -1,36 +1,40 @@
 <template>
   <button
     class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition"
-    :class="conversation.active ? 'bg-[#202c33]' : 'hover:bg-[#1a262e]'"
+    :class="[!active && 'conversation-item-hover', active && 'conversation-item-active']"
+    :aria-current="active ? 'true' : undefined"
+    :aria-label="`${conversation.name}${conversation.unread ? `, ${conversation.unread} unread` : ''}`"
     @click="$emit('select', conversation.id)"
   >
-    <BaseAvatar :text="initials" size="sm" />
+    <BaseAvatar :text="initials" size="sm" aria-hidden="true" />
 
     <div class="min-w-0 flex-1">
-      <p class="truncate text-[1.05rem] font-medium text-[#e9edef]">
+      <p class="truncate text-[1.05rem] font-medium" style="color: var(--chat-text)">
         {{ conversation.name }}
       </p>
-      <p class="truncate text-sm text-[#8696a0]">
+      <p class="truncate text-sm" style="color: var(--chat-text-secondary)">
         {{ conversation.preview }}
       </p>
     </div>
 
     <div class="flex shrink-0 flex-col items-end gap-1">
-      <span class="text-xs text-[#8696a0]">{{ conversation.time }}</span>
+      <span class="text-xs" style="color: var(--chat-text-secondary)" aria-hidden="true">{{ conversation.time }}</span>
       <UBadge v-if="conversation.unread" size="sm" color="primary" variant="soft">
-        {{ conversation.unread }}
+        <span class="sr-only">{{ conversation.unread }} unread messages</span>
+        <span aria-hidden="true">{{ conversation.unread }}</span>
       </UBadge>
     </div>
   </button>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import BaseAvatar from '@/components/atoms/BaseAvatar.vue'
-import type { Conversation } from '@/types/chat'
+import BaseAvatar from '@/components/atoms/BaseAvatar.vue';
+import type { Conversation } from '@/types/chat';
+import { computed } from 'vue';
 
 const props = defineProps<{
   conversation: Conversation
+  active: boolean
 }>()
 
 defineEmits<{
@@ -39,3 +43,13 @@ defineEmits<{
 
 const initials = computed(() => props.conversation.name.slice(0, 2).toUpperCase())
 </script>
+
+<style scoped>
+.conversation-item-hover:hover {
+  background-color: var(--chat-surface-hover);
+}
+
+.conversation-item-active {
+  background-color: var(--chat-surface-active);
+}
+</style>

@@ -3,7 +3,7 @@
     <UAvatar :text="text" :size="size" />
     <span
       v-if="status"
-      class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary-400 ring-2 ring-[#0b111d]"
+      class="avatar-status absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2"
     />
   </div>
 </template>
@@ -18,3 +18,10 @@ withDefaults(defineProps<{
   status: false
 })
 </script>
+
+<style scoped>
+.avatar-status {
+  background-color: var(--chat-accent);
+  --tw-ring-color: var(--chat-shell);
+}
+</style>

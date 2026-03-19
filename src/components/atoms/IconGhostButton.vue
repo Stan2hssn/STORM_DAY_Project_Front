@@ -1,9 +1,16 @@
 <template>
-  <UButton :icon="icon" color="neutral" variant="ghost" :ui="{ base: 'text-[#aebac1] hover:bg-[#2a3942]' }" />
+  <UButton
+    :icon="icon"
+    color="neutral"
+    variant="ghost"
+    :aria-label="label"
+    :ui="{ base: 'text-[var(--chat-icon)] hover:bg-[var(--chat-icon-hover)]' }"
+  />
 </template>
 
 <script setup lang="ts">
 defineProps<{
   icon: string
+  label?: string
 }>()
 </script>

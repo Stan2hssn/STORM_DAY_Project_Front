@@ -1,8 +1,8 @@
 <template>
-  <div class="mx-auto flex w-full max-w-2xl items-center gap-4 text-xs text-slate-500">
-    <div class="h-px flex-1 bg-white/10" />
+  <div class="mx-auto flex w-full max-w-2xl items-center gap-4 text-xs" style="color: var(--chat-text-muted)">
+    <hr class="h-px flex-1 border-0" style="background-color: var(--chat-border)" aria-hidden="true">
     <span>{{ label }}</span>
-    <div class="h-px flex-1 bg-white/10" />
+    <hr class="h-px flex-1 border-0" style="background-color: var(--chat-border)" aria-hidden="true">
   </div>
 </template>
 
