@@ -2,6 +2,7 @@ import { fileURLToPath, URL } from 'node:url';
 
 import ui from '@nuxt/ui/vite';
 import vue from '@vitejs/plugin-vue';
+import glsl from 'vite-plugin-glsl';
 import { defineConfig } from 'vite';
 import vueDevTools from 'vite-plugin-vue-devtools';
 
@@ -9,6 +10,7 @@ import vueDevTools from 'vite-plugin-vue-devtools';
 export default defineConfig({
   plugins: [
     vue(),
+    glsl(),
     ui({
       router: true,
       colorMode: false
@@ -30,8 +32,9 @@ export default defineConfig({
       '/users': 'http://localhost:30080',
       '/api': 'http://localhost:30080',
       '/ws': {
-        target: 'ws://localhost:30080',
+        target: 'http://localhost:30080',
         ws: true,
+        changeOrigin: true,
       },
     },
   },
