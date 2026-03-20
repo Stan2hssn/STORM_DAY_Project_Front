@@ -543,7 +543,7 @@ export const useChatStore = defineStore('chat', () => {
 
     const raw = msg as unknown as Record<string, unknown>;
 
-    // TODO(ws-ux): traiter `action === 'error'` / `code: JOIN_DENIED` — toast ou bannière (voir README backlog).
+    // TODO(ws-ux): handle `action === 'error'` / `code: JOIN_DENIED` — toast or banner (see README backlog).
 
     // New conversation for other members — no full reload (backend must broadcast)
     if (msg.action === 'group_created' || msg.action === 'conversation_created') {
@@ -631,7 +631,7 @@ export const useChatStore = defineStore('chat', () => {
       return;
     }
 
-    // Handle seen receipts — add user to seenBy (group) + update status (DM). On n’ajoute jamais soi-même à seenBy.
+    // Handle seen receipts — add user to seenBy (group) + update status (DM). Never add yourself to seenBy.
     if (msg.action === 'seen') {
       const conversationId = parseWsConversationId(msg.room);
       const messageIdRaw = raw.message_id ?? raw.messageId;
@@ -719,7 +719,7 @@ export const useChatStore = defineStore('chat', () => {
 
     scheduleSilentMessagesResync(conversationId);
 
-    // Accusé de réception « livré » : on a reçu le message, on le signale à l’expéditeur
+    // Delivery receipt: we received the message, notify the sender.
     if (serverId) {
       ws.send({
         action: 'delivered',
@@ -838,7 +838,7 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const currentUserId = auth.user?.id ?? '';
 
-      // TODO(rest-pagination): curseur / before_id / limit quand le gateway les expose — éviter charger tout l’historique.
+      // TODO(rest-pagination): cursor / before_id / limit once the gateway exposes them — avoid loading full history.
       const raw = await api.get<unknown>(
         `/api/messages?conversation_id=${conversationId}`,
       );
@@ -973,7 +973,7 @@ export const useChatStore = defineStore('chat', () => {
     markSeen(conversationId);
   }
 
-  /** Envoie « vu » pour le dernier message de la conversation (backend peut interpréter comme « lu jusqu’ici »). */
+  /** Sends a "seen" receipt for the last message in the conversation (backend may treat as "read up to here"). */
   function markSeen(conversationId: string) {
     const messages = messagesByConversation.value[conversationId] ?? [];
     const lastMessage = messages[messages.length - 1];
@@ -1048,7 +1048,7 @@ export const useChatStore = defineStore('chat', () => {
   type SendMessageOptions = {
     conversationId?: string
     forwardFromMessageId?: string
-    /** Aperçu transfert (optimiste + secours si l’API ne renvoie pas l’objet nested). */
+    /** Forward preview (optimistic + fallback if the API does not return the nested object). */
     forwardFromPreview?: ForwardFrom
   }
 

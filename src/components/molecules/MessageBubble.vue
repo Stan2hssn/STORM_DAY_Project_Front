@@ -64,7 +64,7 @@
         :seen-by="displayedSeenBy"
       />
 
-      <!-- Ancrage du menu au bouton ⋮ : coin haut-gauche de l’icône, pas à la bulle -->
+      <!-- Menu anchored to the ⋮ button, not to the bubble -->
       <div
         class="absolute top-1/2 z-[1] -translate-y-1/2"
         :class="isRight ? '-left-8' : '-right-8'"
@@ -138,7 +138,7 @@ const initials = computed(() => props.message.author.slice(0, 2).toUpperCase())
 const isRight = computed(() => props.message.side === 'right')
 const showAuthor = computed(() => !isRight.value && props.isGroup && props.isFirstInGroup)
 
-/** Mention « Transféré » : dès que c’est un transfert (métadonnées ou flag explicite). */
+/** Show the "Forwarded" mention as soon as the message has forward metadata or flag. */
 const showForwardMention = computed(
   () => Boolean(props.message.forwardFrom || props.message.isForwarded),
 )
@@ -148,7 +148,7 @@ function onForwardMentionClick() {
   if (id) emit('scroll-to', id)
 }
 
-/** Accusés « vus par » : on n’affiche que les autres utilisateurs (pas soi-même). */
+/** Seen-by receipts: filter out the current user (never show yourself in the list). */
 const displayedSeenBy = computed(() => {
   const list = props.message.seenBy ?? [];
   const currentId = auth.user?.id;

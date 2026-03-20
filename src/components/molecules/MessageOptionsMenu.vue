@@ -37,7 +37,7 @@ const emit = defineEmits<{
   forward: []
 }>()
 
-/** Chaque entrée du menu est définie par son icône (sens courbe gauche = reply, droite = forward). */
+/** Each menu item is defined by its icon (curved-left = reply, curved-right = forward). */
 const items = computed((): MenuItemDef[] => {
   const list: MenuItemDef[] = [
     {
