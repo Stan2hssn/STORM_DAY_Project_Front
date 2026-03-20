@@ -105,7 +105,7 @@ void main() {
   // Boost contrast: push away from 0.5
   grain = (grain - 0.5) * 2.0;
   grain = sign(grain) * pow(abs(grain), 0.7) * 0.5 + 0.5;
-  col += (grain - 0.5) * uGrainIntensity * ir;
+  col += (1. - grain) * uGrainIntensity * ir;
 
   // ── Debug ──
   if(uDebug == 1) {
