@@ -542,7 +542,11 @@ export const useChatStore = defineStore('chat', () => {
 
     const raw = msg as unknown as Record<string, unknown>;
 
-    // TODO(ws-ux): handle `action === 'error'` / `code: JOIN_DENIED` — toast or banner (see README backlog).
+    // TODO(fix/ws-error-handling): handle WebSocket error frames from the gateway.
+    // Expected shape: { action: 'error', code: 'JOIN_DENIED' | 'UNAUTHORIZED' | string, message?: string }
+    // On JOIN_DENIED: show toast "You no longer have access to this conversation" and deselect it.
+    // On UNAUTHORIZED: trigger auth.refresh(); if refresh fails, redirect to /login.
+    // General error: useToast().add({ title: msg.message ?? 'Connection error', color: 'red' })
 
     // New conversation for other members — no full reload (backend must broadcast)
     if (msg.action === 'group_created' || msg.action === 'conversation_created') {
