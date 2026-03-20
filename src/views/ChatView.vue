@@ -105,7 +105,14 @@
           </div>
 
           <div class="flex items-center gap-2">
+            <!-- TODO(feat/message-search): open in-conversation search panel on click.
+                 Required API: GET /api/messages/search?conversation_id={id}&q={query}
+                 Returns: paginated Message[]
+                 UI: slide-in search bar above thread, highlight matching messages, jump-to result. -->
             <IconGhostButton icon="i-lucide-search" label="Search messages" />
+            <!-- TODO(feat/conversation-options): open conversation options panel on click.
+                 Actions needed: leave group, mute notifications, clear history (local).
+                 Required API: DELETE /api/groups/{id}/members/{userId} (leave), PATCH /api/groups/{id} (mute). -->
             <IconGhostButton icon="i-lucide-ellipsis-vertical" label="More options" />
           </div>
         </div>
