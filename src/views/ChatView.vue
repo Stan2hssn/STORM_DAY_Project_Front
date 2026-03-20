@@ -323,13 +323,15 @@ async function handleForwardToConversation(conversationId: string) {
     forwardFromPreview,
   })
   if (!result.ok) {
-    // TODO(ux): replace with toast (Nuxt UI) — see README backlog.
+    // TODO(fix/toast-notifications): replace globalThis.alert with useToast() from Nuxt UI.
+    // useToast().add({ title: 'Could not forward message', description: errorMessage, color: 'red' })
+    // Remove globalThis.alert once UNotifications is mounted in App.vue / ChatView root.
     const errorMessage = 'error' in result ? result.error : 'Unknown error'
     globalThis.alert(`Could not forward the message.\n\n${errorMessage}\n\nIf the API rejects forward_from_id, the gateway/message-service may not support it yet (see README — backlog transfert).`)
     return
   }
   if (result.forwardMetadataSkipped) {
-    // TODO(ux): replace with toast instead of alert
+    // TODO(fix/toast-notifications): replace with useToast().add({ title: '...', color: 'yellow' })
     globalThis.alert(
       'Message was sent as plain text only.\n\nThe source message has no numeric server id (e.g. it only existed over WebSocket). Open the conversation once so messages load from the API, then try forward again.',
     )
