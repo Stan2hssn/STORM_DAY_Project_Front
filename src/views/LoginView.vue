@@ -1,54 +1,94 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center" style="background: #0b141a;">
-    <div class="w-full max-w-sm p-8 rounded-2xl shadow-xl" style="background: #111b21;">
-      <h1 class="text-2xl font-bold text-center mb-8" style="color: #e9edef;">STORM</h1>
+  <AuthLayoutTemplate>
+    <div class="space-y-8 p-8">
+      <header class="space-y-1 text-center" data-auth-item>
+        <h1 class="text-2xl font-semibold tracking-tight" :style="{ color: 'var(--chat-text)' }">
+          STORM
+        </h1>
+        <p class="text-sm" :style="{ color: 'var(--chat-text-muted)' }">
+          Connexion à ton espace
+        </p>
+      </header>
 
-      <form @submit.prevent="handleSubmit" class="flex flex-col gap-4">
-        <div class="flex flex-col gap-1">
-          <label class="text-sm" style="color: #8696a0;">Email</label>
-          <input
+      <form class="flex flex-col gap-5" data-auth-item @submit.prevent="handleSubmit">
+        <div class="flex flex-col gap-1.5">
+          <label
+            for="auth-login-email"
+            class="text-sm font-medium"
+            :style="{ color: 'var(--chat-text-secondary)' }"
+          >
+            Email
+          </label>
+          <UInput
+            id="auth-login-email"
             v-model="email"
             type="email"
             required
             autocomplete="email"
-            class="px-4 py-2 rounded-lg outline-none border focus:border-[#00a884] transition-colors"
-            style="background: #202c33; border-color: #374045; color: #e9edef;"
+            size="xl"
+            placeholder="toi@exemple.com"
+            :ui="{ base: 'ring-transparent' }"
+            :style="{ backgroundColor: 'var(--chat-surface)', color: 'var(--chat-text)' }"
+            class="w-full"
           />
         </div>
 
-        <div class="flex flex-col gap-1">
-          <label class="text-sm" style="color: #8696a0;">Mot de passe</label>
-          <input
+        <div class="flex flex-col gap-1.5">
+          <label
+            for="auth-login-password"
+            class="text-sm font-medium"
+            :style="{ color: 'var(--chat-text-secondary)' }"
+          >
+            Mot de passe
+          </label>
+          <UInput
+            id="auth-login-password"
             v-model="password"
             type="password"
             required
             autocomplete="current-password"
-            class="px-4 py-2 rounded-lg outline-none border focus:border-[#00a884] transition-colors"
-            style="background: #202c33; border-color: #374045; color: #e9edef;"
+            size="xl"
+            placeholder="••••••••"
+            :ui="{ base: 'ring-transparent' }"
+            :style="{ backgroundColor: 'var(--chat-surface)', color: 'var(--chat-text)' }"
+            class="w-full"
           />
         </div>
 
-        <p v-if="error" class="text-sm text-red-400 text-center">{{ error }}</p>
-
-        <button
-          type="submit"
-          :disabled="loading"
-          class="mt-2 py-2 px-4 rounded-lg font-semibold transition-opacity disabled:opacity-50"
-          style="background: #00a884; color: #fff;"
+        <p
+          v-if="error"
+          class="rounded-xl border border-red-500/35 bg-red-500/10 px-3 py-2 text-center text-sm text-red-700 dark:text-red-300"
+          role="alert"
         >
-          {{ loading ? 'Connexion...' : 'Se connecter' }}
-        </button>
+          {{ error }}
+        </p>
+
+        <UButton
+          type="submit"
+          color="primary"
+          block
+          size="lg"
+          :loading="loading"
+          :label="loading ? 'Connexion…' : 'Se connecter'"
+        />
       </form>
 
-      <p class="text-center mt-6 text-sm" style="color: #8696a0;">
+      <p class="text-center text-sm" data-auth-item :style="{ color: 'var(--chat-text-muted)' }">
         Pas de compte ?
-        <router-link to="/register" style="color: #00a884;" class="hover:underline">S'inscrire</router-link>
+        <RouterLink
+          to="/register"
+          class="font-medium underline-offset-2 hover:underline"
+          :style="{ color: 'var(--chat-accent)' }"
+        >
+          S'inscrire
+        </RouterLink>
       </p>
     </div>
-  </div>
+  </AuthLayoutTemplate>
 </template>
 
 <script setup lang="ts">
+import AuthLayoutTemplate from '@/components/templates/AuthLayoutTemplate.vue'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -66,7 +106,8 @@ async function handleSubmit() {
   loading.value = true
   try {
     await auth.login(email.value, password.value)
-    router.push('/')
+    await import('@/views/ChatView.vue')
+    await router.push('/')
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Erreur de connexion'
   } finally {
