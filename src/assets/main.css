@@ -18,6 +18,15 @@
   --color-green-950: #1a1510;
 }
 
+html {
+  background-color: var(--chat-body);
+  min-height: 100%;
+}
+
+html.theme-transition {
+  transition: background-color 0.65s ease;
+}
+
 :root {
   --ui-radius: 0.6rem;
   --ui-primary: #6b6560;
@@ -173,18 +182,6 @@
   background: transparent;
 }
 
-/* ─── Changement de conversation / entrée vue chat (fade) ─── */
-.chat-fade-enter-active {
-  transition: opacity 0.22s ease-out;
-}
-.chat-fade-leave-active {
-  transition: opacity 0.16s ease-in;
-}
-.chat-fade-enter-from,
-.chat-fade-leave-to {
-  opacity: 0;
-}
-
 /* ─── Component transitions (fast hover/interaction) ─── */
 *,
 *::before,
@@ -214,9 +211,11 @@ html.theme-transition *::after {
     @apply min-h-screen antialiased;
     color: var(--chat-text);
     overflow: hidden;
+    background-color: transparent;
   }
 
   #app {
     @apply min-h-screen;
+    background-color: transparent;
   }
 }
