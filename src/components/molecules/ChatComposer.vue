@@ -56,7 +56,10 @@
       :aria-label="editTarget ? 'Edit message' : 'Message composer'"
       @submit.prevent="handleSubmit"
     >
-      <!-- TODO(attachments): upload + champ attachment sur POST /api/messages — README backlog -->
+      <!-- TODO(feat/message-attachments): implement file attachment upload.
+           Required API: POST /api/messages with multipart/form-data, field name "attachment".
+           Backend must return attachment_url on the message object.
+           UI: file picker on click, preview thumbnail before send, progress indicator. -->
       <div class="attach-btn-square p-1">
         <UButton
           icon="i-lucide-plus"
