@@ -26,7 +26,7 @@ import type { ForwardFrom } from '@/types/chat'
 import { computed } from 'vue'
 
 const props = defineProps<{
-  /** Optionnel : si absent, la mention s’affiche quand même (pas de scroll vers l’origine). */
+  /** Optional: if absent, the label is still shown but clicking won’t scroll to the source. */
   forwardFrom?: ForwardFrom | null
 }>()
 

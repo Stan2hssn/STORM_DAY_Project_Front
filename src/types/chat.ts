@@ -56,7 +56,7 @@ export interface ReplyTo {
   text: string
 }
 
-/** Citation du message d’origine lors d’un transfert (même forme qu’une réponse). */
+/** Original message snapshot when forwarding (same shape as a reply quote). */
 export interface ForwardFrom {
   id: string
   author: string
@@ -79,9 +79,9 @@ export interface Message {
   rawTime: string
   side: 'left' | 'right'
   replyTo?: ReplyTo
-  /** Message d’origine si ce message est un transfert (API / WS / optimiste). */
+  /** Source message if this is a forward (REST / WebSocket / optimistic). */
   forwardFrom?: ForwardFrom
-  /** Transfert sans objet nested complet (ex. API partielle) : afficher quand même « Transféré ». */
+  /** Forward without a full nested object (e.g. partial API response): still show the "Forwarded" label. */
   isForwarded?: boolean
   status?: MessageStatus
   seenBy?: SeenByUser[]
