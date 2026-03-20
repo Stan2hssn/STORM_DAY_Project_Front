@@ -50,38 +50,36 @@
 
     <!-- Top-right: chat header -->
     <template #chat-header>
-      <Transition name="chat-fade" mode="out-in" appear>
-        <div :key="chatTransitionKey" class="w-full">
-          <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <UButton
-            v-if="isMobileThread"
-            icon="i-lucide-arrow-left"
-            color="neutral"
-            variant="ghost"
-            aria-label="Back to conversations"
-            class="md:hidden"
-            @click="layoutRef?.backToSidebar()"
-          />
-          <BaseAvatar :text="chatAvatar" size="lg" :aria-hidden="true" />
-          <div>
-            <h2 class="text-xl font-medium" style="color: var(--chat-text)">
-              {{ chatName }}
-            </h2>
-            <p v-if="isGroup" class="text-xs" style="color: var(--chat-text-secondary)">
-              {{ chatStore.membersLabel }}
-            </p>
+      <div class="w-full">
+        <div class="flex items-center justify-between">
+          <div ref="chatHeaderIdentityRef" class="chat-header-fade-item flex items-center gap-3">
+            <UButton
+              v-if="isMobileThread"
+              icon="i-lucide-arrow-left"
+              color="neutral"
+              variant="ghost"
+              aria-label="Back to conversations"
+              class="md:hidden"
+              @click="layoutRef?.backToSidebar()"
+            />
+            <BaseAvatar :text="chatAvatar" size="lg" :aria-hidden="true" />
+            <div>
+              <h2 class="text-xl font-medium" style="color: var(--chat-text)">
+                {{ chatName }}
+              </h2>
+              <p v-if="isGroup" class="text-xs" style="color: var(--chat-text-secondary)">
+                {{ chatStore.membersLabel }}
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div class="flex items-center gap-2">
-          <IconGhostButton icon="i-lucide-user-plus" label="Add member" />
-          <IconGhostButton icon="i-lucide-search" label="Search messages" />
-          <IconGhostButton icon="i-lucide-ellipsis-vertical" label="More options" />
+          <div class="flex items-center gap-2">
+            <IconGhostButton icon="i-lucide-user-plus" label="Add member" />
+            <IconGhostButton icon="i-lucide-search" label="Search messages" />
+            <IconGhostButton icon="i-lucide-ellipsis-vertical" label="More options" />
           </div>
         </div>
-        </div>
-      </Transition>
+      </div>
     </template>
 
     <!-- Bottom-left: conversation list -->
@@ -98,25 +96,22 @@
 
     <!-- Bottom-right: messages -->
     <template #chat-body>
-      <Transition name="chat-fade" mode="out-in" appear>
-        <div
-          :key="chatTransitionKey"
-          class="flex h-full min-h-0 flex-col"
-        >
-          <ChatThread
-            :messages="chatStore.activeMessages"
-            :chat-name="chatName"
-            :system-message="chatStore.systemMessage"
-            :loading="chatStore.loadingMessages"
-            :is-group="isGroup"
-            :typing-users="chatStore.activeTypingUsers"
-            @send="handleSendMessage"
-            @update-message="handleUpdateMessage"
-            @forward-message="handleForwardMessage"
-            @typing="chatStore.emitTyping"
-          />
-        </div>
-      </Transition>
+      <div class="flex h-full min-h-0 flex-col">
+        <ChatThread
+          ref="chatThreadRef"
+          :messages="chatStore.activeMessages"
+          :chat-name="chatName"
+          :system-message="chatStore.systemMessage"
+          :loading="chatStore.loadingMessages"
+          :is-group="isGroup"
+          :typing-users="chatStore.activeTypingUsers"
+          :thread-transition-key="chatTransitionKey"
+          @send="handleSendMessage"
+          @update-message="handleUpdateMessage"
+          @forward-message="handleForwardMessage"
+          @typing="chatStore.emitTyping"
+        />
+      </div>
     </template>
   </ChatLayoutTemplate>
 
@@ -137,10 +132,12 @@ import ForwardConversationPicker from '@/components/molecules/ForwardConversatio
 import ChatSidebar from '@/components/organisms/ChatSidebar.vue'
 import ChatThread from '@/components/organisms/ChatThread.vue'
 import ChatLayoutTemplate from '@/components/templates/ChatLayoutTemplate.vue'
+import { useGsap } from '@/composables/useGsap'
 import type { Message, ReplyTo } from '@/types/chat'
+import { useThemeToggle } from '@/composables/useThemeToggle'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const auth = useAuthStore()
@@ -149,33 +146,63 @@ const router = useRouter()
 
 const layoutRef = ref<InstanceType<typeof ChatLayoutTemplate> | null>(null)
 const sidebarRef = ref<InstanceType<typeof ChatSidebar> | null>(null)
+const chatThreadRef = ref<InstanceType<typeof ChatThread> | null>(null)
+const chatHeaderIdentityRef = ref<HTMLDivElement | null>(null)
 const forwardMessage = ref<Message | null>(null)
+const gsap = useGsap()
+let headerTimeline: gsap.core.Timeline | null = null
 
-const isDark = ref(document.documentElement.classList.contains('dark'))
+const { isDark, toggleTheme } = useThemeToggle()
 const isMobileThread = computed(() => !!chatStore.activeConversationId)
 const isGroup = computed(() => chatStore.activeMembers.length > 2)
 const chatName = computed(() => chatStore.activeConversationDisplayName)
 const chatAvatar = computed(() => chatName.value.slice(0, 2).toUpperCase())
 
-/** Clé de transition : change à chaque conversation (fade entre les chats + appear au chargement). */
+/** Transition key: changes with each conversation (fade between chats + appear on load). */
 const chatTransitionKey = computed(() => chatStore.activeConversationId ?? '__none__')
 
-function toggleTheme() {
-  isDark.value = !isDark.value
-  const el = document.documentElement
-  el.classList.add('theme-transition')
-  el.classList.toggle('dark', isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
-  setTimeout(() => el.classList.remove('theme-transition'), 700)
+function headerFadeOut(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const identity = chatHeaderIdentityRef.value
+    if (!identity) { resolve(); return }
+    headerTimeline?.kill()
+    headerTimeline = gsap.timeline({ onComplete: resolve })
+    headerTimeline.to(identity, {
+      opacity: 0,
+      duration: 0.28,
+      ease: 'power1.in',
+    })
+  })
 }
 
-function handleSelectConversation(id: string) {
+// Fade-in only — triggered after the store updates (chatTransitionKey changes)
+watch(chatTransitionKey, async () => {
+  await nextTick()
+  const identity = chatHeaderIdentityRef.value
+  if (!identity) return
+  headerTimeline?.kill()
+  headerTimeline = gsap.timeline()
+  headerTimeline.set(identity, { opacity: 0 })
+  headerTimeline.to(identity, {
+    opacity: 1,
+    duration: 0.35,
+    ease: 'power2.out',
+  })
+}, { immediate: true })
+
+async function handleSelectConversation(id: string) {
+  await Promise.all([chatThreadRef.value?.fadeOut(), headerFadeOut()])
   chatStore.selectConversation(id)
   layoutRef.value?.selectThread()
+  // Fallback for conversations where loading never changes (demo / cached data)
+  await nextTick()
+  chatThreadRef.value?.fadeIn()
 }
 
 function handleSendMessage(text: string, replyTo?: ReplyTo) {
-  void chatStore.sendMessage(text, replyTo)
+  chatStore.sendMessage(text, replyTo).catch((error: unknown) => {
+    console.error('[ChatView] sendMessage failed:', error)
+  })
 }
 
 function handleUpdateMessage(id: string, text: string) {
@@ -203,13 +230,14 @@ async function handleForwardToConversation(conversationId: string) {
     forwardFromPreview,
   })
   if (!result.ok) {
-    // TODO(ux): remplacer par toast (Nuxt UI) — voir README backlog.
-    window.alert(`Could not forward the message.\n\n${result.error}\n\nIf the API rejects forward_from_id, the gateway/message-service may not support it yet (see README — backlog transfert).`)
+    // TODO(ux): replace with toast (Nuxt UI) — see README backlog.
+    const errorMessage = 'error' in result ? result.error : 'Unknown error'
+    globalThis.alert(`Could not forward the message.\n\n${errorMessage}\n\nIf the API rejects forward_from_id, the gateway/message-service may not support it yet (see README — backlog transfert).`)
     return
   }
   if (result.forwardMetadataSkipped) {
-    // TODO(ux): toast au lieu d’alert
-    window.alert(
+    // TODO(ux): replace with toast instead of alert
+    globalThis.alert(
       'Message was sent as plain text only.\n\nThe source message has no numeric server id (e.g. it only existed over WebSocket). Open the conversation once so messages load from the API, then try forward again.',
     )
   }
@@ -218,8 +246,9 @@ async function handleForwardToConversation(conversationId: string) {
 }
 
 async function handleLogout() {
+  await import('@/views/LoginView.vue')
   await auth.logout()
-  router.push('/login')
+  await router.push('/login')
 }
 
 onMounted(async () => {
@@ -228,6 +257,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  headerTimeline?.kill()
+  headerTimeline = null
   chatStore.destroyWebSocket()
 })
 </script>

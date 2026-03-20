@@ -1,5 +1,6 @@
 <template>
   <section
+    ref="threadRootEl"
     class="flex h-full flex-col overflow-hidden chat-thread-bg rounded-2xl"
     role="log"
     :aria-label="`Conversation with ${chatName}`"
@@ -9,10 +10,8 @@
       class="chat-scroll flex-1 space-y-4 overflow-y-auto px-4 py-4"
       aria-live="polite"
     >
-        <LoadingText v-if="loading" text="Loading messages..." />
-
-        <template v-else>
-          <SystemMessageText v-if="systemMessage" :message="systemMessage" />
+        <template v-if="!loading">
+          <SystemMessageText v-if="systemMessage" :message="systemMessage" data-bubble />
 
           <TransitionGroup
             name="message"
@@ -25,6 +24,7 @@
                 :key="`d-${item.key}`"
                 :label="item.label"
                 class="my-4 divider-item"
+                data-bubble
               />
               <div
                 v-else
@@ -52,39 +52,41 @@
 
     <Transition
       enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0 translate-y-2"
-      enter-to-class="opacity-100 translate-y-0"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
       leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100 translate-y-0"
-      leave-to-class="opacity-0 translate-y-2"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
     >
       <TypingIndicator v-if="typingUsers.length" :users="typingUsers" />
     </Transition>
 
     <footer class="px-3 pb-3 pt-2">
-      <ChatComposer
-        ref="composerRef"
-        :reply-to="replyTo"
-        :edit-target="editTarget"
-        @send="handleSend"
-        @update-message="handleComposerUpdateMessage"
-        @cancel-reply="replyTo = null"
-        @cancel-edit="editTarget = null"
-        @typing="emit('typing')"
-      />
+      <div>
+        <ChatComposer
+          ref="composerRef"
+          :reply-to="replyTo"
+          :edit-target="editTarget"
+          @send="handleSend"
+          @update-message="handleComposerUpdateMessage"
+          @cancel-reply="replyTo = null"
+          @cancel-edit="editTarget = null"
+          @typing="emit('typing')"
+        />
+      </div>
     </footer>
   </section>
 </template>
 
 <script setup lang="ts">
-import LoadingText from '@/components/atoms/LoadingText.vue'
 import SystemMessageText from '@/components/atoms/SystemMessageText.vue'
 import ChatComposer from '@/components/molecules/ChatComposer.vue'
 import DateDivider from '@/components/molecules/DateDivider.vue'
 import MessageBubble from '@/components/molecules/MessageBubble.vue'
 import TypingIndicator from '@/components/molecules/TypingIndicator.vue'
+import { useGsap } from '@/composables/useGsap'
 import type { Message, ReplyTo } from '@/types/chat';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
   messages: Message[]
@@ -93,6 +95,7 @@ const props = defineProps<{
   loading: boolean
   isGroup: boolean
   typingUsers: string[]
+
 }>()
 
 const emit = defineEmits<{
@@ -118,9 +121,9 @@ function formatDayLabel(date: Date): string {
   if (isSameDay(date, yesterday)) return 'Yesterday'
   const diffMs = now.getTime() - date.getTime()
   if (diffMs < 7 * 24 * 60 * 60 * 1000) {
-    return date.toLocaleDateString([], { weekday: 'long' })
+    return date.toLocaleDateString(undefined, { weekday: 'long' })
   }
-  return date.toLocaleDateString([], { day: '2-digit', month: '2-digit' })
+  return date.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' })
 }
 
 const dateDividers = computed(() => {
@@ -244,7 +247,10 @@ function isLastInBatch(idx: number): boolean {
 }
 
 const scrollEl = ref<HTMLElement | null>(null)
+const threadRootEl = ref<HTMLElement | null>(null)
 const composerRef = ref<InstanceType<typeof ChatComposer> | null>(null)
+const gsap = useGsap()
+let bubbleTimeline: gsap.core.Timeline | null = null
 
 function scrollToBottom() {
   const el = scrollEl.value
@@ -253,8 +259,7 @@ function scrollToBottom() {
 }
 
 // Scroll when a new message is appended, but only if the user
-// était déjà proche du bas avant l'ajout, pour éviter de "chasser"
-// le diviseur de date hors de l'écran.
+// was already near the bottom, to avoid pushing date dividers off-screen.
 watch(
   () => props.messages.length,
   (newLen, oldLen) => {
@@ -268,13 +273,80 @@ watch(
     }
   },
 )
-watch(() => props.loading, (v) => {
-  if (!v) {
+function fadeOut(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    nextTick().then(() => {
+      const root = threadRootEl.value
+      if (!root) { resolve(); return }
+      bubbleTimeline?.kill()
+
+      const bubbles = root.querySelectorAll('[data-bubble]')
+      const targets = Array.from(bubbles)
+
+      // No visible content — hide the scroll container and resolve immediately
+      if (!targets.length) {
+        if (scrollEl.value) gsap.set(scrollEl.value, { opacity: 0 })
+        resolve()
+        return
+      }
+
+      bubbleTimeline = gsap.timeline({
+        onComplete: () => {
+          // Hide the scroll container so new DOM elements created by Vue
+          // after selectConversation() don't flash at opacity:1 before fadeIn runs
+          if (scrollEl.value) gsap.set(scrollEl.value, { opacity: 0 })
+          resolve()
+        },
+      })
+      bubbleTimeline.to(targets, {
+        opacity: 0,
+        duration: 0.28,
+        ease: 'power1.in',
+      })
+    })
+  })
+}
+
+async function fadeIn() {
+  await nextTick()
+  const root = threadRootEl.value
+  if (!root) return
+  bubbleTimeline?.kill()
+
+  // Restore scroll container visibility before animating items inside it
+  if (scrollEl.value) gsap.set(scrollEl.value, { opacity: 1 })
+
+  const bubbles = root.querySelectorAll('[data-bubble]')
+  if (!bubbles.length) return
+
+  bubbleTimeline = gsap.timeline()
+  bubbleTimeline.set(bubbles, { opacity: 0 }, 0)
+  bubbleTimeline.to(bubbles, {
+    opacity: 1,
+    duration: 0.28,
+    stagger: 0.02,
+    ease: 'power1.out',
+  })
+}
+
+watch(
+  () => props.loading,
+  (isLoading) => {
+    if (isLoading) return
     nextTick(() => {
       scrollToBottom()
       composerRef.value?.focus()
     })
-  }
+    void fadeIn()
+  },
+  { immediate: true },
+)
+
+defineExpose({ fadeOut, fadeIn })
+
+onUnmounted(() => {
+  bubbleTimeline?.kill()
+  bubbleTimeline = null
 })
 </script>
 
@@ -288,7 +360,7 @@ watch(() => props.loading, (v) => {
 
 [data-bubble].message-enter-from {
   opacity: 0;
-  transform: translateY(16px) scale(0.97);
+  transform: scale(0.985);
 }
 
 /* Smooth displacement when new messages push others up */
@@ -306,7 +378,7 @@ watch(() => props.loading, (v) => {
 
 [data-bubble].message-leave-to {
   opacity: 0;
-  transform: scale(0.96);
+  transform: scale(0.985);
 }
 
 /* Dividers: no enter/leave animation, only move */
