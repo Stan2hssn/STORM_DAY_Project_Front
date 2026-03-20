@@ -105,6 +105,19 @@ const filteredConversations = computed(() => {
   const search = conversationSearch.value.trim().toLowerCase()
   let list = props.conversations
 
+  // TODO(feat/conversation-filters): apply activeFilter once backend exposes the fields.
+  // Required API changes:
+  //   - PATCH /api/groups/{id}  → body: { is_archived: boolean } or { is_favorite: boolean }
+  //   - Conversation type must expose `is_archived` and `is_favorite` boolean fields
+  //   - 'recent' → sort by last_message_at DESC (already default, confirm with backend)
+  //   - 'archived' → list.filter(c => c.is_archived)
+  //   - 'favorites' → list.filter(c => c.is_favorite)
+  //   - 'all' → no additional filter
+  if (activeFilter.value === 'archived' || activeFilter.value === 'favorites') {
+    // Placeholder: these filters are UI-only until backend supports is_archived / is_favorite
+    list = []
+  }
+
   if (search) {
     list = list.filter(
       (c) => c.name.toLowerCase().includes(search) || c.preview.toLowerCase().includes(search),
