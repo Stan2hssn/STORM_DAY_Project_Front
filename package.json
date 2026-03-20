@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@nuxt/ui": "^4.5.0",
+    "gsap": "^3.12.5",
     "pinia": "^3.0.4",
     "three": "^0.183.2",
     "tweakpane": "^4.0.5",

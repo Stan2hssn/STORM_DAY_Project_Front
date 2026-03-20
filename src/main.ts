@@ -1,5 +1,8 @@
 import './assets/main.css'
 
+// Let var(--chat-body) control the background (inline script already prevents the flash)
+document.documentElement.style.removeProperty('background-color')
+
 // Theme: follow system preference, allow manual override via localStorage
 const savedTheme = localStorage.getItem('theme')
 const systemDark = globalThis.matchMedia('(prefers-color-scheme: dark)').matches
@@ -18,11 +21,13 @@ import { createPinia } from 'pinia'
 import ui from '@nuxt/ui/vue-plugin'
 import App from './App.vue'
 import router from './router'
+import { gsapPlugin } from '@/plugins/gsap'
 
 const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
 app.use(ui)
+app.use(gsapPlugin)
 
 app.mount('#app')
