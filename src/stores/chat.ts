@@ -837,7 +837,11 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const currentUserId = auth.user?.id ?? '';
 
-      // TODO(rest-pagination): cursor / before_id / limit once the gateway exposes them — avoid loading full history.
+      // TODO(feat/message-pagination): implement cursor-based pagination to avoid loading full history.
+      // Required API changes: GET /api/messages?conversation_id={id}&before_id={id}&limit={n}
+      // Store a `hasMore` flag and `oldestMessageId` per conversation.
+      // UI: trigger fetch when user scrolls to the top of the thread (IntersectionObserver on first message).
+      // After fetch, prepend messages and restore scroll position.
       const raw = await api.get<unknown>(
         `/api/messages?conversation_id=${conversationId}`,
       );
