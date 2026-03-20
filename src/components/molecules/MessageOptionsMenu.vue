@@ -19,6 +19,11 @@
 import MenuItemButton from '@/components/atoms/MenuItemButton.vue';
 import { computed } from 'vue';
 
+// TODO(feat/message-delete): add a "Delete" menu item for own messages.
+// Required API: DELETE /api/messages/{id} (author-only or admin).
+// Store: add deleteMessage(id) action → removes from activeMessages and calls API.
+// Props: add `canDelete: boolean` (true when message.author.id === auth.user.id).
+// On success emit 'delete' and remove optimistically; on error restore with toast.
 type MenuEvent = 'reply' | 'edit' | 'forward'
 
 interface MenuItemDef {
