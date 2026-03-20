@@ -1,6 +1,6 @@
 <template>
   <article
-    class="mx-auto flex w-full max-w-5xl items-end gap-2"
+    class="mx-auto flex w-full max-w-5xl items-end gap-2 "
     :class="isRight ? 'justify-end' : ''"
     :aria-label="`${message.author} at ${message.time}: ${message.text}`"
   >
@@ -20,7 +20,7 @@
       @mouseleave="scheduleClose"
     >
       <div
-        class="px-3 py-2"
+        class="px-3 py-3"
         :style="{
           backgroundColor: isRight ? 'var(--chat-bubble-out)' : 'var(--chat-bubble-in)',
           color: 'var(--chat-text)',
@@ -43,7 +43,7 @@
           <span class="font-medium" style="color: var(--chat-accent)">{{ message.author }}</span>
           <span v-if="message.authorUsername" class="ml-1" style="color: var(--chat-text-muted)">@{{ message.authorUsername }}</span>
         </p>
-        <p class="text-sm leading-relaxed">
+        <p class="text-sm">
           {{ message.text }}
           <span
             v-if="message.modified"
@@ -74,7 +74,7 @@
         <div class="relative">
           <button
             type="button"
-            class="rounded-full p-1 opacity-100 transition-opacity focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--chat-accent)] pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100"
+            class="rounded-sm p-1 opacity-100 transition-opacity focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--chat-accent)] pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100"
             :style="{ color: 'var(--chat-text-secondary)' }"
             :aria-expanded="showMenu"
             aria-haspopup="menu"

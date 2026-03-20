@@ -25,7 +25,7 @@
     </div>
     <button
       type="button"
-      class="shrink-0 self-start rounded-full p-1"
+      class="shrink-0 self-start rounded-sm p-1"
       :style="{ color: 'var(--chat-text-secondary)' }"
       aria-label="Cancel reply"
       @click="$emit('cancel')"

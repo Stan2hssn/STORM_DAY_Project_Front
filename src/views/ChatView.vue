@@ -4,48 +4,78 @@
     ref="layoutRef"
     :active-conversation-id="chatStore.activeConversationId"
   >
-    <!-- Top-left: sidebar header -->
-    <template #sidebar-header>
+    <!-- Full-width app header -->
+    <template #app-header>
       <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-semibold" style="color: var(--chat-text)">
-            Chats
-          </h1>
-          <p v-if="auth.user" class="text-xs" style="color: var(--chat-text-secondary)">
-            {{ auth.user.display_name }}
-          </p>
+        <!-- Logo -->
+        <div class="flex items-center gap-2">
+          <div
+            class="flex size-8 items-center justify-center rounded-lg text-sm font-bold text-white"
+            style="background-color: var(--chat-user-bubble)"
+          >
+            S
+          </div>
+          <span class="text-lg font-semibold" style="color: var(--chat-text)">Storm</span>
         </div>
+
+        <!-- Right: notifications + profile + theme -->
         <div class="flex items-center gap-1">
+          <!-- Notifications dropdown -->
+          <UDropdownMenu :items="notificationItems" :ui="dropdownUi">
+            <UButton
+              icon="i-lucide-bell"
+              color="neutral"
+              variant="ghost"
+              size="md"
+              class="size-11 shrink-0 justify-center"
+              aria-label="Notifications"
+            />
+          </UDropdownMenu>
+
+          <!-- Profile dropdown -->
+          <UDropdownMenu v-model:open="profileDropdownOpen" :modal="false" :items="profileItems" :ui="dropdownUi">
+            <button
+              type="button"
+              class="flex h-11 cursor-pointer items-center gap-2 rounded-sm px-2 transition"
+              @mouseenter="openProfileDropdown"
+              @mouseleave="scheduleCloseProfileDropdown"
+            >
+              <BaseAvatar
+                v-if="auth.user"
+                :text="auth.user.display_name.slice(0, 2).toUpperCase()"
+                size="md" 
+                class="h-full aspect-square"
+              />
+              <span v-if="auth.user" class="text-md font-medium" style="color: var(--chat-text)">
+                {{ auth.user.display_name }}
+              </span>
+              <UIcon name="i-lucide-chevron-down" class="size-3.5 opacity-50" style="color: var(--chat-text-secondary)" />
+            </button>
+          </UDropdownMenu>
+
+          <!-- Theme toggle -->
           <UButton
             :icon="isDark ? 'i-lucide-sun' : 'i-lucide-moon'"
             color="neutral"
             variant="ghost"
+            size="md"
+            class="size-11 shrink-0 justify-center"
             :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
             @click="toggleTheme"
           />
-          <UButton
-            icon="i-lucide-play"
-            color="neutral"
-            variant="ghost"
-            aria-label="Load demo data"
-            @click="chatStore.loadDemoData()"
-          />
-          <UButton
-            icon="i-lucide-square-pen"
-            color="neutral"
-            variant="ghost"
-            aria-label="New conversation"
-            @click="sidebarRef?.openCreate()"
-          />
-          <UButton
-            icon="i-lucide-log-out"
-            color="neutral"
-            variant="ghost"
-            aria-label="Log out"
-            @click="handleLogout"
-          />
         </div>
       </div>
+    </template>
+
+    <!-- Left: sidebar -->
+    <template #sidebar>
+      <ChatSidebar
+        :conversations="chatStore.conversations"
+        :active-conversation-id="chatStore.activeConversationId"
+        :loading="chatStore.loadingConversations"
+        @select-conversation="handleSelectConversation"
+        @create-conversation="handleCreateConversation"
+      />
     </template>
 
     <!-- Top-right: chat header -->
@@ -58,11 +88,12 @@
               icon="i-lucide-arrow-left"
               color="neutral"
               variant="ghost"
+              size="md"
+              class="size-11 shrink-0 md:hidden"
               aria-label="Back to conversations"
-              class="md:hidden"
               @click="layoutRef?.backToSidebar()"
             />
-            <BaseAvatar :text="chatAvatar" size="lg" :aria-hidden="true" />
+            <BaseAvatar :text="chatAvatar" size="md" :aria-hidden="true" />
             <div>
               <h2 class="text-xl font-medium" style="color: var(--chat-text)">
                 {{ chatName }}
@@ -74,24 +105,11 @@
           </div>
 
           <div class="flex items-center gap-2">
-            <IconGhostButton icon="i-lucide-user-plus" label="Add member" />
             <IconGhostButton icon="i-lucide-search" label="Search messages" />
             <IconGhostButton icon="i-lucide-ellipsis-vertical" label="More options" />
           </div>
         </div>
       </div>
-    </template>
-
-    <!-- Bottom-left: conversation list -->
-    <template #sidebar-body>
-      <ChatSidebar
-        ref="sidebarRef"
-        :conversations="chatStore.conversations"
-        :active-conversation-id="chatStore.activeConversationId"
-        :loading="chatStore.loadingConversations"
-        @select-conversation="handleSelectConversation"
-        @create-conversation="chatStore.createConversation"
-      />
     </template>
 
     <!-- Bottom-right: messages -->
@@ -105,7 +123,6 @@
           :loading="chatStore.loadingMessages"
           :is-group="isGroup"
           :typing-users="chatStore.activeTypingUsers"
-          :thread-transition-key="chatTransitionKey"
           @send="handleSendMessage"
           @update-message="handleUpdateMessage"
           @forward-message="handleForwardMessage"
@@ -114,6 +131,11 @@
       </div>
     </template>
   </ChatLayoutTemplate>
+
+  <AccountSettingsModal
+    v-if="settingsOpen"
+    @close="settingsOpen = false"
+  />
 
   <ForwardConversationPicker
     v-if="forwardMessage"
@@ -126,29 +148,30 @@
 </template>
 
 <script setup lang="ts">
-import BaseAvatar from '@/components/atoms/BaseAvatar.vue'
-import IconGhostButton from '@/components/atoms/IconGhostButton.vue'
-import ForwardConversationPicker from '@/components/molecules/ForwardConversationPicker.vue'
-import ChatSidebar from '@/components/organisms/ChatSidebar.vue'
-import ChatThread from '@/components/organisms/ChatThread.vue'
-import ChatLayoutTemplate from '@/components/templates/ChatLayoutTemplate.vue'
-import { useGsap } from '@/composables/useGsap'
-import type { Message, ReplyTo } from '@/types/chat'
-import { useThemeToggle } from '@/composables/useThemeToggle'
-import { useAuthStore } from '@/stores/auth'
-import { useChatStore } from '@/stores/chat'
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import BaseAvatar from '@/components/atoms/BaseAvatar.vue';
+import IconGhostButton from '@/components/atoms/IconGhostButton.vue';
+import ForwardConversationPicker from '@/components/molecules/ForwardConversationPicker.vue';
+import AccountSettingsModal from '@/components/organisms/AccountSettingsModal.vue';
+import ChatSidebar from '@/components/organisms/ChatSidebar.vue';
+import ChatThread from '@/components/organisms/ChatThread.vue';
+import ChatLayoutTemplate from '@/components/templates/ChatLayoutTemplate.vue';
+import { useGsap } from '@/composables/useGsap';
+import { useThemeToggle } from '@/composables/useThemeToggle';
+import { useAuthStore } from '@/stores/auth';
+import { useChatStore } from '@/stores/chat';
+import type { CreateGroupPayload, Message, ReplyTo } from '@/types/chat';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 const auth = useAuthStore()
 const chatStore = useChatStore()
 const router = useRouter()
 
 const layoutRef = ref<InstanceType<typeof ChatLayoutTemplate> | null>(null)
-const sidebarRef = ref<InstanceType<typeof ChatSidebar> | null>(null)
 const chatThreadRef = ref<InstanceType<typeof ChatThread> | null>(null)
 const chatHeaderIdentityRef = ref<HTMLDivElement | null>(null)
 const forwardMessage = ref<Message | null>(null)
+const settingsOpen = ref(false)
 const gsap = useGsap()
 let headerTimeline: gsap.core.Timeline | null = null
 
@@ -157,6 +180,62 @@ const isMobileThread = computed(() => !!chatStore.activeConversationId)
 const isGroup = computed(() => chatStore.activeMembers.length > 2)
 const chatName = computed(() => chatStore.activeConversationDisplayName)
 const chatAvatar = computed(() => chatName.value.slice(0, 2).toUpperCase())
+
+const notificationItems = computed(() => {
+  const unread = chatStore.conversations.filter((c) => c.unread > 0)
+  if (!unread.length) {
+    return [[{ label: 'No new notifications', disabled: true, icon: 'i-lucide-bell-off' }]]
+  }
+  return [
+    unread.map((c) => ({
+      label: c.name,
+      description: c.preview,
+      icon: 'i-lucide-message-circle',
+      badge: String(c.unread),
+      onSelect: () => handleSelectConversation(c.id),
+    })),
+  ]
+})
+
+const profileItems = [
+  [{ label: 'Settings', icon: 'i-lucide-settings', onSelect: () => { settingsOpen.value = true } }],
+  [{ label: 'Log out', icon: 'i-lucide-log-out', onSelect: () => handleLogout() }],
+]
+
+const profileDropdownOpen = ref(false)
+let profileCloseTimer: ReturnType<typeof setTimeout> | undefined
+let profilePortalEl: Element | null = null
+
+function openProfileDropdown() {
+  clearTimeout(profileCloseTimer)
+  profileDropdownOpen.value = true
+}
+
+function scheduleCloseProfileDropdown() {
+  profileCloseTimer = globalThis.setTimeout(() => {
+    profileDropdownOpen.value = false
+  }, 150)
+}
+
+// Attach hover listeners to the portal content so moving from trigger → menu doesn't close it.
+watch(profileDropdownOpen, async (isOpen) => {
+  await nextTick()
+  if (isOpen) {
+    profilePortalEl = document.querySelector('[data-reka-popper-content-wrapper]')
+    profilePortalEl?.addEventListener('mouseenter', openProfileDropdown)
+    profilePortalEl?.addEventListener('mouseleave', scheduleCloseProfileDropdown)
+  } else {
+    profilePortalEl?.removeEventListener('mouseenter', openProfileDropdown)
+    profilePortalEl?.removeEventListener('mouseleave', scheduleCloseProfileDropdown)
+    profilePortalEl = null
+  }
+})
+
+const dropdownUi = {
+  content: 'z-[200] p-0 overflow-hidden ring-0 shadow-lg',
+  group: 'p-0 isolate',
+  item: 'rounded-none before:rounded-none px-4 py-2.5',
+}
 
 /** Transition key: changes with each conversation (fade between chats + appear on load). */
 const chatTransitionKey = computed(() => chatStore.activeConversationId ?? '__none__')
@@ -190,11 +269,18 @@ watch(chatTransitionKey, async () => {
   })
 }, { immediate: true })
 
+async function handleCreateConversation(payload: CreateGroupPayload) {
+  await chatStore.createConversation(payload)
+  layoutRef.value?.selectThread()
+  await nextTick()
+  chatThreadRef.value?.fadeIn()
+}
+
 async function handleSelectConversation(id: string) {
   await Promise.all([chatThreadRef.value?.fadeOut(), headerFadeOut()])
   chatStore.selectConversation(id)
   layoutRef.value?.selectThread()
-  // Fallback for conversations where loading never changes (demo / cached data)
+  // Fallback for conversations where loading never changes (cached data)
   await nextTick()
   chatThreadRef.value?.fadeIn()
 }
@@ -259,6 +345,9 @@ onMounted(async () => {
 onUnmounted(() => {
   headerTimeline?.kill()
   headerTimeline = null
+  clearTimeout(profileCloseTimer)
+  profilePortalEl?.removeEventListener('mouseenter', openProfileDropdown)
+  profilePortalEl?.removeEventListener('mouseleave', scheduleCloseProfileDropdown)
   chatStore.destroyWebSocket()
 })
 </script>

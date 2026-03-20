@@ -82,8 +82,8 @@
             No other conversation to forward to.
           </p>
         </div>
-        <div class="border-t p-3" :style="{ borderColor: 'var(--chat-border)' }">
-          <UButton color="neutral" variant="ghost" block @click="$emit('cancel')">
+        <div class="border-t" :style="{ borderColor: 'var(--chat-border)' }">
+          <UButton color="neutral" variant="ghost" class="p-3 rounded-none" block @click="$emit('cancel')">
             Cancel
           </UButton>
         </div>
@@ -93,9 +93,9 @@
 </template>
 
 <script setup lang="ts">
-import BaseAvatar from '@/components/atoms/BaseAvatar.vue'
-import type { Conversation } from '@/types/chat'
-import { computed } from 'vue'
+import BaseAvatar from '@/components/atoms/BaseAvatar.vue';
+import type { Conversation } from '@/types/chat';
+import { computed } from 'vue';
 
 const props = defineProps<{
   messagePreview: string

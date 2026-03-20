@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-w-[9.5rem] rounded-md border bg-[var(--chat-surface)] text-xs shadow-lg"
+    class="min-w-[9.5rem] rounded-md border bg-[var(--chat-surface)] text-xs shadow-lg overflow-hidden"
     style="border-color: var(--chat-border)"
     role="menu"
     @click.stop

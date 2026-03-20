@@ -419,7 +419,7 @@ export const useChatStore = defineStore('chat', () => {
   let conversationsResyncTimer: ReturnType<typeof setTimeout> | null = null;
 
   function scheduleSilentMessagesResync(conversationId: string) {
-    if (!conversationId || conversationId.startsWith('demo-')) return;
+    if (!conversationId) return;
     const prev = messageResyncTimers.get(conversationId);
     if (prev) clearTimeout(prev);
     messageResyncTimers.set(
@@ -439,7 +439,6 @@ export const useChatStore = defineStore('chat', () => {
 
   function rejoinAllConversationRooms() {
     for (const c of conversations.value) {
-      if (c.id.startsWith('demo-')) continue;
       joinConversationRoom(c.id);
     }
   }
@@ -966,8 +965,6 @@ export const useChatStore = defineStore('chat', () => {
     conversations.value = conversations.value.map((c) =>
       c.id === conversationId ? { ...c, unread: 0 } : c,
     );
-    // Skip API calls for demo conversations (data already loaded)
-    if (conversationId.startsWith('demo-')) return;
     await fetchMembers(conversationId);
     await fetchMessages(conversationId);
     markSeen(conversationId);
@@ -997,7 +994,7 @@ export const useChatStore = defineStore('chat', () => {
   let lastTypingEmit = 0;
   function emitTyping() {
     const conversationId = activeConversationId.value;
-    if (!conversationId || conversationId.startsWith('demo-')) return;
+    if (!conversationId) return;
     const now = Date.now();
     if (now - lastTypingEmit < 2000) return;
     lastTypingEmit = now;
@@ -1227,87 +1224,6 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  function loadDemoData() {
-    const now = Date.now();
-    const t = (minAgo: number) => new Date(now - minAgo * 60000).toISOString();
-
-    // -- Demo DM conversation --
-    conversations.value = [
-      { id: 'demo-dm', name: 'Alice Martin', preview: 'Sounds good, talk tomorrow!', time: formatTime(t(1)), unread: 0 },
-      { id: 'demo-group', name: 'STORM project', preview: 'We will merge tonight', time: formatTime(t(3)), unread: 0 },
-    ];
-
-    membersByConversation.value['demo-dm'] = [
-      { id: 'me', username: 'stan', displayName: 'Stan Husson', avatarUrl: undefined },
-      { id: 'alice', username: 'alice_m', displayName: 'Alice Martin', avatarUrl: undefined },
-    ];
-
-    membersByConversation.value['demo-group'] = [
-      { id: 'me', username: 'stan', displayName: 'Stan Husson', avatarUrl: undefined },
-      { id: 'alice', username: 'alice_m', displayName: 'Alice Martin', avatarUrl: undefined },
-      { id: 'bob', username: 'bob_dev', displayName: 'Bob Dupont', avatarUrl: undefined },
-      { id: 'clara', username: 'clara_ui', displayName: 'Clara Vega', avatarUrl: undefined },
-    ];
-
-    // DM messages — text-based receipts
-    messagesByConversation.value['demo-dm'] = [
-      { id: 'dm-1', author: 'Alice Martin', text: 'Hey, did you see the last commit?', time: formatMessageTime(t(10)), rawTime: t(10), side: 'left' },
-      { id: 'dm-2', author: 'Stan Husson', text: 'Yes, the refactor looks good', time: formatMessageTime(t(9)), rawTime: t(9), side: 'right', status: 'seen' },
-      { id: 'dm-3', author: 'Alice Martin', text: 'Nice! Can we review it tomorrow?', time: formatMessageTime(t(5)), rawTime: t(5), side: 'left' },
-      { id: 'dm-4', author: 'Stan Husson', text: 'Perfect, talk to you tomorrow!', time: formatMessageTime(t(4)), rawTime: t(4), side: 'right', status: 'delivered' },
-      { id: 'dm-5', author: 'Stan Husson', text: 'I will push the branch tonight', time: formatMessageTime(t(1)), rawTime: t(1), side: 'right', status: 'sent' },
-    ];
-
-    // Group messages — stacked avatar receipts
-    messagesByConversation.value['demo-group'] = [
-      { id: 'grp-1', author: 'Bob Dupont', authorUsername: 'bob_dev', text: 'I fixed the WebSocket bug', time: formatMessageTime(t(20)), rawTime: t(20), side: 'left' },
-      { id: 'grp-2', author: 'Bob Dupont', authorUsername: 'bob_dev', text: 'Reconnect works now', time: formatMessageTime(t(19)), rawTime: t(19), side: 'left' },
-      { id: 'grp-3', author: 'Clara Vega', authorUsername: 'clara_ui', text: 'Nice! I will test on staging', time: formatMessageTime(t(15)), rawTime: t(15), side: 'left' },
-      {
-        id: 'grp-4', author: 'Stan Husson', authorUsername: 'stan', text: 'Top, je merge la feature reply-to', time: formatMessageTime(t(10)), rawTime: t(10), side: 'right', status: 'seen',
-        seenBy: [
-          { id: 'alice', displayName: 'Alice Martin' },
-          { id: 'bob', displayName: 'Bob Dupont' },
-          { id: 'clara', displayName: 'Clara Vega' },
-        ],
-      },
-      {
-        id: 'grp-5', author: 'Alice Martin', authorUsername: 'alice_m', text: 'Attention au conflit sur le chat store', time: formatMessageTime(t(7)), rawTime: t(7), side: 'left',
-        replyTo: { id: 'grp-4', author: 'Stan Husson', text: 'Top, je merge la feature reply-to' },
-      },
-      {
-        id: 'grp-6', author: 'Stan Husson', authorUsername: 'stan', text: 'On merge ce soir', time: formatMessageTime(t(3)), rawTime: t(3), side: 'right', status: 'seen',
-        seenBy: [
-          { id: 'bob', displayName: 'Bob Dupont' },
-        ],
-      },
-      {
-        id: 'grp-fwd-1',
-        author: 'Clara Vega',
-        authorUsername: 'clara_ui',
-        text: 'I fixed the WebSocket bug',
-        time: formatMessageTime(t(2.5)),
-        rawTime: t(2.5),
-        side: 'left',
-        forwardFrom: { id: 'grp-1', author: 'Bob Dupont', text: 'I fixed the WebSocket bug' },
-      },
-      {
-        id: 'grp-fwd-2',
-        author: 'Stan Husson',
-        authorUsername: 'stan',
-        text: 'Noté, merci Clara',
-        time: formatMessageTime(t(2)),
-        rawTime: t(2),
-        side: 'right',
-        status: 'sent',
-        forwardFrom: { id: 'grp-3', author: 'Clara Vega', text: 'Nice! I will test on staging' },
-        replyTo: { id: 'grp-5', author: 'Alice Martin', text: 'Attention au conflit sur le chat store' },
-      },
-    ];
-
-    activeConversationId.value = 'demo-dm';
-  }
-
   function $reset() {
     destroyWebSocket();
     conversations.value = [];
@@ -1338,7 +1254,6 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     editMessage,
     emitTyping,
-    loadDemoData,
     initWebSocket,
     destroyWebSocket,
     $reset,

@@ -2,8 +2,8 @@ import { fileURLToPath, URL } from 'node:url';
 
 import ui from '@nuxt/ui/vite';
 import vue from '@vitejs/plugin-vue';
-import glsl from 'vite-plugin-glsl';
 import { defineConfig } from 'vite';
+import glsl from 'vite-plugin-glsl';
 import vueDevTools from 'vite-plugin-vue-devtools';
 
 // https://vite.dev/config/
@@ -28,14 +28,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/auth': 'http://localhost:30080',
-      '/users': 'http://localhost:30080',
-      '/api': 'http://localhost:30080',
-      '/ws': {
-        target: 'http://localhost:30080',
-        ws: true,
-        changeOrigin: true,
-      },
-    },
-  },
+      '/ws': { target: 'http://localhost:8080', ws: true, changeOrigin: true },
+      '/api': { target: 'http://localhost:8080', changeOrigin: true },
+      '/auth': { target: 'http://localhost:8080', changeOrigin: true },
+      '/users': { target: 'http://localhost:8080', changeOrigin: true },
+    }
+  }
 });

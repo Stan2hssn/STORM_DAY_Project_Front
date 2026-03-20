@@ -41,7 +41,7 @@
         <span class="flex-1 text-xs italic" style="color: var(--chat-text-muted)">Editing message</span>
         <button
           type="button"
-          class="shrink-0 rounded-full p-1 text-xs"
+          class="shrink-0 rounded-sm p-1 text-xs"
           :style="{ color: 'var(--chat-text-secondary)' }"
           aria-label="Cancel edit"
           @click="cancelEdit"
@@ -57,13 +57,16 @@
       @submit.prevent="handleSubmit"
     >
       <!-- TODO(attachments): upload + champ attachment sur POST /api/messages — README backlog -->
-      <UButton
-        icon="i-lucide-plus"
-        color="neutral"
-        variant="ghost"
-        aria-label="Attach file"
-        :disabled="!!editTarget"
-      />
+      <div class="attach-btn-square p-1">
+        <UButton
+          icon="i-lucide-plus"
+          color="neutral"
+          variant="ghost"
+          class="size-full min-w-0 min-h-0 rounded-sm w-full h-full flex align-center justify-center"
+          aria-label="Attach file"
+          :disabled="!!editTarget"
+        />
+      </div>
       <UInput
         ref="inputRef"
         id="message"
@@ -78,22 +81,24 @@
         @input="emit('typing')"
         @keydown.enter.prevent="handleSubmit"
       />
+      <div class="attach-btn-square p-1">
       <UButton
         :icon="editTarget ? 'i-lucide-check' : 'i-lucide-send'"
         color="primary"
         variant="soft"
-        class="shrink-0 rounded-full"
+        class="size-full min-w-0 min-h-0 rounded-sm w-full h-full flex align-center justify-center"
         type="submit"
         :aria-label="editTarget ? 'Save changes' : 'Send message'"
       />
+      </div>
     </form>
   </div>
 </template>
 
 <script setup lang="ts">
-import ReplyPreviewBanner from '@/components/molecules/ReplyPreviewBanner.vue'
-import type { ReplyTo } from '@/types/chat'
-import { ref, watch } from 'vue'
+import ReplyPreviewBanner from '@/components/molecules/ReplyPreviewBanner.vue';
+import type { ReplyTo } from '@/types/chat';
+import { ref, watch } from 'vue';
 
 const props = defineProps<{
   replyTo?: ReplyTo | null
@@ -148,6 +153,15 @@ defineExpose({ focus })
 </script>
 
 <style scoped>
+.attach-btn-square {
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 :deep(input) {
   outline: none !important;
   box-shadow: none !important;

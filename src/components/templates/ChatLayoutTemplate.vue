@@ -1,36 +1,38 @@
 <template>
-  <div class="relative h-screen overflow-hidden">
-    <main class="chat-shell relative mx-auto grid h-full w-full max-w-[1680px] overflow-hidden"
-      :class="mobileView === 'sidebar' ? 'grid-cols-1 md:grid-cols-[420px_1fr]' : 'grid-cols-1 md:grid-cols-[420px_1fr]'"
+  <div class="relative flex h-screen flex-col overflow-hidden">
+    <!-- Full-width app header — sits above the grid on z-axis -->
+    <header
+      class="chat-shell relative z-10 shrink-0 border-b px-8 py-4"
+      style="border-color: var(--chat-border)"
+    >
+      <slot name="app-header" />
+    </header>
+
+    <!-- Main grid: sidebar (left) + chat area (right) -->
+    <main
+      class="relative mx-auto grid min-h-0 flex-1 w-full max-w-[1680px] overflow-hidden md:grid-cols-[420px_1fr]"
       style="grid-template-rows: auto 1fr"
     >
-      <!-- Top-left: sidebar header -->
+      <!-- Left: sidebar spans both rows -->
       <div
-        class="px-4 py-4"
-        :class="mobileView === 'sidebar' ? '' : 'hidden md:block'"
+        class="row-span-2 flex min-h-0 flex-col overflow-hidden border-r"
+        :class="mobileView === 'sidebar' ? 'flex' : 'hidden md:flex'"
+        style="border-color: var(--chat-border)"
       >
-        <slot name="sidebar-header" />
+        <slot name="sidebar" />
       </div>
 
       <!-- Top-right: chat header -->
       <div
-        class="px-4 py-4"
+        class="px-6 py-5"
         :class="mobileView === 'thread' ? '' : 'hidden md:block'"
       >
         <slot name="chat-header" />
       </div>
 
-      <!-- Bottom-left: conversation list -->
-      <div
-        class="min-h-0 flex flex-col overflow-hidden px-3"
-        :class="mobileView === 'sidebar' ? 'flex' : 'hidden md:flex'"
-      >
-        <slot name="sidebar-body" />
-      </div>
-
       <!-- Bottom-right: chat thread -->
       <div
-        class="min-h-0 flex flex-col overflow-hidden px-3 pb-3"
+        class="min-h-0 flex flex-col overflow-hidden px-4 pb-5"
         :class="mobileView === 'thread' ? 'flex' : 'hidden md:flex'"
       >
         <slot name="chat-body" />

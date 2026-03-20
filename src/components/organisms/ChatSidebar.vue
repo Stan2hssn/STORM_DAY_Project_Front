@@ -1,19 +1,48 @@
 <template>
-  <div class="flex h-full flex-col" aria-label="Conversations">
-    <!-- Search input at top of conversation list -->
-    <div class="pb-2">
+  <div class="flex h-full flex-col p-5" aria-label="Conversations">
+    <!-- Search + New conversation -->
+    <div class="flex items-center gap-2 pb-4">
       <UInput
         v-model="conversationSearch"
+        id="conversation-search"
+        icon="i-lucide-search"
         placeholder="Search a conversation"
-        size="xl"
-        rounded="full"
+        size="lg"
         aria-label="Search conversations"
         :ui="{ base: 'ring-transparent' }"
-        :style="{ color: 'var(--chat-text)' }"
-        class="w-full"
+        class="flex-1"
+      />
+      <UButton
+        icon="i-lucide-square-pen"
+        color="neutral"
+        variant="ghost"
+        size="md"
+        class="size-11 shrink-0 justify-center"
+        aria-label="New conversation"
+        @click="createConversationOpen = true"
       />
     </div>
 
+    <!-- Filters -->
+    <div class="flex gap-1 pb-4" role="tablist" aria-label="Conversation filters">
+      <button
+        v-for="filter in filters"
+        :key="filter.value"
+        role="tab"
+        :aria-selected="activeFilter === filter.value"
+        class="rounded-sm px-3 py-2 text-xs font-medium transition"
+        :class="
+          activeFilter === filter.value
+            ? 'bg-(--chat-user-bubble) text-white'
+            : 'text-(--chat-text-secondary) hover:bg-(--chat-surface-hover)'
+        "
+        @click="activeFilter = filter.value"
+      >
+        {{ filter.label }}
+      </button>
+    </div>
+
+    <!-- Conversation list -->
     <nav class="chat-scroll flex-1 overflow-y-auto py-1" aria-label="Conversation list">
       <output v-if="loading" class="block py-8 text-center text-sm" style="color: var(--chat-text-secondary)">
         Loading conversations...
@@ -59,15 +88,30 @@ const props = defineProps<{
   loading: boolean
 }>()
 
+type FilterValue = 'recent' | 'all' | 'archived' | 'favorites'
+
+const filters: { label: string; value: FilterValue }[] = [
+  { label: 'Recent', value: 'recent' },
+  { label: 'All', value: 'all' },
+  { label: 'Archived', value: 'archived' },
+  { label: 'Favorites', value: 'favorites' },
+]
+
 const conversationSearch = ref('')
 const createConversationOpen = ref(false)
+const activeFilter = ref<FilterValue>('recent')
 
 const filteredConversations = computed(() => {
   const search = conversationSearch.value.trim().toLowerCase()
-  if (!search) return props.conversations
-  return props.conversations.filter(
-    (c) => c.name.toLowerCase().includes(search) || c.preview.toLowerCase().includes(search),
-  )
+  let list = props.conversations
+
+  if (search) {
+    list = list.filter(
+      (c) => c.name.toLowerCase().includes(search) || c.preview.toLowerCase().includes(search),
+    )
+  }
+
+  return list
 })
 
 function handleCreateConversation(payload: CreateGroupPayload) {

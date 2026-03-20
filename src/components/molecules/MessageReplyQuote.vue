@@ -5,7 +5,7 @@
     tabindex="0"
     :style="{
       backgroundColor: 'var(--chat-reply-quote-bg)',
-      borderRadius: 'max(0.65rem, calc(var(--chat-bubble-radius) - 6px))',
+      borderRadius: 'max(0.65rem, calc(var(--chat-bubble-radius) - calc(var(--spacing) * 3)))',
     }"
     :aria-label="`En réponse à ${replyTo.author}: ${replyTo.text}`"
     @click="$emit('click')"
@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ReplyTo } from '@/types/chat'
+import type { ReplyTo } from '@/types/chat';
 
 defineProps<{
   replyTo: ReplyTo

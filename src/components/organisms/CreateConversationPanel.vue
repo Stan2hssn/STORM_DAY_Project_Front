@@ -20,7 +20,7 @@
                 Search users, select one or more, then create.
               </p>
             </div>
-            <UButton icon="i-lucide-x" color="neutral" variant="ghost" @click="handleClose" />
+            <UButton icon="i-lucide-x" color="neutral" variant="ghost" size="md" class="size-11 shrink-0 justify-center" @click="handleClose" />
           </header>
 
           <div class="space-y-3 p-5">
@@ -46,6 +46,10 @@
 
               <p v-else-if="searching" class="py-6 text-center text-sm" :style="{ color: 'var(--chat-text-muted)' }">
                 Searching...
+              </p>
+
+              <p v-else-if="searchError" class="py-6 text-center text-sm text-red-500">
+                {{ searchError }}
               </p>
 
               <p v-else-if="searchResults.length === 0" class="py-6 text-center text-sm" :style="{ color: 'var(--chat-text-muted)' }">
@@ -105,18 +109,27 @@ const groupName = ref('')
 const selectedUsers = ref<Map<string, ChatUser>>(new Map())
 const searchResults = ref<ChatUser[]>([])
 const searching = ref(false)
+const searchError = ref<string | null>(null)
 
 async function searchUsers(q: string) {
   if (!q.trim()) {
     searchResults.value = []
+    searchError.value = null
     return
   }
 
   searching.value = true
+  searchError.value = null
   try {
     const results = await api.get<UserSearchDto[]>(
       `/users/search?q=${encodeURIComponent(q)}`,
     )
+    if (!Array.isArray(results)) {
+      console.error('[CreateConversationPanel] unexpected response shape:', results)
+      searchError.value = 'Unexpected response from server'
+      searchResults.value = []
+      return
+    }
     searchResults.value = results
       .filter((u) => u.id !== auth.user?.id)
       .map((u) => ({
@@ -125,14 +138,16 @@ async function searchUsers(q: string) {
         displayName: u.display_name,
         avatarUrl: u.avatar_url,
       }))
-  } catch {
+  } catch (err) {
+    console.error('[CreateConversationPanel] user search failed:', err)
+    searchError.value = err instanceof Error ? err.message : 'Search failed'
     searchResults.value = []
   } finally {
     searching.value = false
   }
 }
 
-let debounceTimer: ReturnType<typeof setTimeout>
+let debounceTimer: ReturnType<typeof setTimeout> | undefined
 watch(query, (val) => {
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => searchUsers(val), 300)
@@ -142,11 +157,14 @@ const isGroup = computed(() => selectedUsers.value.size > 1)
 const canCreate = computed(() => selectedUsers.value.size > 0)
 
 function resetState() {
+  clearTimeout(debounceTimer)
+  debounceTimer = undefined
   query.value = ''
   groupName.value = ''
   selectedUsers.value = new Map()
   searchResults.value = []
   searching.value = false
+  searchError.value = null
 }
 
 function toggleUser(user: ChatUser) {

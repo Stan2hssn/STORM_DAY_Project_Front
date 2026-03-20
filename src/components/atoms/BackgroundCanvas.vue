@@ -11,10 +11,10 @@
 </template>
 
 <script setup lang="ts">
+import { createIntroController } from '@/components/atoms/background-canvas/intro';
+import { useGsap } from '@/composables/useGsap';
 import fragmentShader from '@/shaders/background.frag';
 import vertexShader from '@/shaders/background.vert';
-import { createIntroController } from '@/components/atoms/background-canvas/intro'
-import { useGsap } from '@/composables/useGsap'
 import {
   Mesh,
   OrthographicCamera,
@@ -109,7 +109,7 @@ function loadGrainTextureAsync(): Promise<Texture> {
 }
 
 const params = {
-  grainIntensity: 0.165,
+  grainIntensity: 0.1,
   noiseScale: 1.5,
   noiseSpeed: 0.3,
   timeScale: 0.05,

@@ -1,7 +1,7 @@
 <template>
   <section
     ref="threadRootEl"
-    class="flex h-full flex-col overflow-hidden chat-thread-bg rounded-2xl"
+    class="flex h-full flex-col overflow-hidden"
     role="log"
     :aria-label="`Conversation with ${chatName}`"
   >
@@ -61,7 +61,7 @@
       <TypingIndicator v-if="typingUsers.length" :users="typingUsers" />
     </Transition>
 
-    <footer class="px-3 pb-3 pt-2">
+    <footer class="px-4 pb-4 pt-2">
       <div>
         <ChatComposer
           ref="composerRef"
@@ -79,12 +79,12 @@
 </template>
 
 <script setup lang="ts">
-import SystemMessageText from '@/components/atoms/SystemMessageText.vue'
-import ChatComposer from '@/components/molecules/ChatComposer.vue'
-import DateDivider from '@/components/molecules/DateDivider.vue'
-import MessageBubble from '@/components/molecules/MessageBubble.vue'
-import TypingIndicator from '@/components/molecules/TypingIndicator.vue'
-import { useGsap } from '@/composables/useGsap'
+import SystemMessageText from '@/components/atoms/SystemMessageText.vue';
+import ChatComposer from '@/components/molecules/ChatComposer.vue';
+import DateDivider from '@/components/molecules/DateDivider.vue';
+import MessageBubble from '@/components/molecules/MessageBubble.vue';
+import TypingIndicator from '@/components/molecules/TypingIndicator.vue';
+import { useGsap } from '@/composables/useGsap';
 import type { Message, ReplyTo } from '@/types/chat';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 
@@ -397,12 +397,13 @@ onUnmounted(() => {
 
 /* ─── Reply-to highlight ─── */
 .highlight-flash {
-  animation: flash 1.5s ease;
+  animation: flash 1s linear;
+  border-radius: var(--chat-bubble-radius);
 }
 
 @keyframes flash {
   0%, 100% { background-color: transparent; }
-  20% { background-color: var(--chat-accent-flash, rgba(122, 138, 80, 0.15)); }
+  20% { background-color: color-mix(in srgb, var(--chat-accent) 4%, transparent); }
 }
 
 </style>

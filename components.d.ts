@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AccountSettingsModal: typeof import('./src/components/organisms/AccountSettingsModal.vue')['default']
     AuthLayoutTemplate: typeof import('./src/components/templates/AuthLayoutTemplate.vue')['default']
     BackgroundCanvas: typeof import('./src/components/atoms/BackgroundCanvas.vue')['default']
     BaseAvatar: typeof import('./src/components/atoms/BaseAvatar.vue')['default']
@@ -41,6 +42,9 @@ declare module 'vue' {
     UAvatar: typeof import('./node_modules/.pnpm/@nuxt+ui@4.5.0_@tiptap+extensions@3.20.0_@tiptap+core@3.20.0_@tiptap+pm@3.20.0__@tiptap+pm@3._spev3naamoq3dpnxgdg5mdikom/node_modules/@nuxt/ui/dist/runtime/components/Avatar.vue')['default']
     UBadge: typeof import('./node_modules/.pnpm/@nuxt+ui@4.5.0_@tiptap+extensions@3.20.0_@tiptap+core@3.20.0_@tiptap+pm@3.20.0__@tiptap+pm@3._spev3naamoq3dpnxgdg5mdikom/node_modules/@nuxt/ui/dist/runtime/components/Badge.vue')['default']
     UButton: typeof import('./node_modules/.pnpm/@nuxt+ui@4.5.0_@tiptap+extensions@3.20.0_@tiptap+core@3.20.0_@tiptap+pm@3.20.0__@tiptap+pm@3._spev3naamoq3dpnxgdg5mdikom/node_modules/@nuxt/ui/dist/runtime/components/Button.vue')['default']
+    UDropdownMenu: typeof import('./node_modules/.pnpm/@nuxt+ui@4.5.0_@tiptap+extensions@3.20.0_@tiptap+core@3.20.0_@tiptap+pm@3.20.0__@tiptap+pm@3._spev3naamoq3dpnxgdg5mdikom/node_modules/@nuxt/ui/dist/runtime/components/DropdownMenu.vue')['default']
+    UForm: typeof import('./node_modules/.pnpm/@nuxt+ui@4.5.0_@tiptap+extensions@3.20.0_@tiptap+core@3.20.0_@tiptap+pm@3.20.0__@tiptap+pm@3._spev3naamoq3dpnxgdg5mdikom/node_modules/@nuxt/ui/dist/runtime/components/Form.vue')['default']
+    UFormField: typeof import('./node_modules/.pnpm/@nuxt+ui@4.5.0_@tiptap+extensions@3.20.0_@tiptap+core@3.20.0_@tiptap+pm@3.20.0__@tiptap+pm@3._spev3naamoq3dpnxgdg5mdikom/node_modules/@nuxt/ui/dist/runtime/components/FormField.vue')['default']
     UIcon: typeof import('./node_modules/.pnpm/@nuxt+ui@4.5.0_@tiptap+extensions@3.20.0_@tiptap+core@3.20.0_@tiptap+pm@3.20.0__@tiptap+pm@3._spev3naamoq3dpnxgdg5mdikom/node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']
     UInput: typeof import('./node_modules/.pnpm/@nuxt+ui@4.5.0_@tiptap+extensions@3.20.0_@tiptap+core@3.20.0_@tiptap+pm@3.20.0__@tiptap+pm@3._spev3naamoq3dpnxgdg5mdikom/node_modules/@nuxt/ui/dist/runtime/components/Input.vue')['default']
     UserPickerItem: typeof import('./src/components/molecules/UserPickerItem.vue')['default']
