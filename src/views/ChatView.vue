@@ -1,6 +1,7 @@
 <template>
   <ChatLayoutTemplate
     :conversations="conversations"
+    :active-conversation="activeConversation"
     :messages="activeMessages"
     :member-rail="memberRail"
     :accounts="accounts"
@@ -10,11 +11,14 @@
     :chat-avatar="chatAvatar"
     :members-label="membersLabel"
     :system-message="systemMessage"
+    :typing-label="typingLabel"
     :subtitle="subtitle"
     @select-conversation="setActiveConversation"
     @switch-account="setActiveAccount"
     @create-conversation="createConversation"
-    @send-message="sendMessage"
+    @send-message="(text, att) => sendMessage(text, att)"
+    @typing="sendTyping(activeConversation?.id ?? '')"
+    @leave-conversation="leaveConversation"
   />
 </template>
 
@@ -31,13 +35,16 @@ const {
   activeMessages,
   conversations,
   createConversation,
+  leaveConversation,
   directoryUsers,
   memberRail,
   membersLabel,
   sendMessage,
+  sendTyping,
   setActiveAccount,
   setActiveConversation,
-  systemMessage
+  systemMessage,
+  typingLabel,
 } = useChatWorkspace()
 
 const chatName = computed(() => activeConversation.value?.name ?? 'New conversation')

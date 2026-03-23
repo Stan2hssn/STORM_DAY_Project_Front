@@ -16,12 +16,16 @@
 
       <ChatThread
         :messages="messages"
+        :conversation="activeConversation"
         :chat-name="chatName"
         :chat-avatar="chatAvatar"
         :members-label="membersLabel"
         :system-message="systemMessage"
+        :typing-label="typingLabel"
         :subtitle="subtitle"
-        @send="(text) => emit('sendMessage', text)"
+        @send="(text, att) => emit('sendMessage', text, att)"
+        @typing="emit('typing')"
+        @leave="emit('leaveConversation')"
       />
 
       <ChatMembersRail :members="memberRail" />
@@ -43,6 +47,7 @@ import type {
 
 defineProps<{
   conversations: Conversation[]
+  activeConversation: Conversation | null
   messages: Message[]
   memberRail: string[]
   accounts: Account[]
@@ -52,6 +57,7 @@ defineProps<{
   chatAvatar: string
   membersLabel: string
   systemMessage: string
+  typingLabel?: string
   subtitle?: string
 }>()
 
@@ -59,6 +65,8 @@ const emit = defineEmits<{
   selectConversation: [conversationId: string]
   switchAccount: [accountId: string]
   createConversation: [payload: CreateConversationPayload]
-  sendMessage: [text: string]
+  sendMessage: [text: string, attachment?: string]
+  typing: []
+  leaveConversation: []
 }>()
 </script>
