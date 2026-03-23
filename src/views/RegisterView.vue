@@ -5,14 +5,12 @@
 
       <form @submit.prevent="handleSubmit" class="flex flex-col gap-4">
         <div class="flex flex-col gap-1">
-          <label class="text-sm" style="color: #8696a0;">Nom d'utilisateur <span class="text-xs">(unique, a-z 0-9 _ -)</span></label>
+          <label class="text-sm" style="color: #8696a0;">Nom d'utilisateur</label>
           <input
             v-model="username"
             type="text"
             required
             autocomplete="username"
-            pattern="^[a-z0-9_-]{3,20}$"
-            title="3-20 caractères, minuscules, chiffres, _ ou -"
             class="px-4 py-2 rounded-lg outline-none border focus:border-[#00a884] transition-colors"
             style="background: #202c33; border-color: #374045; color: #e9edef;"
           />

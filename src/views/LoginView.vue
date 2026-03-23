@@ -38,6 +38,16 @@
         >
           {{ loading ? 'Connexion...' : 'Se connecter' }}
         </button>
+
+        <button
+          v-if="isDev"
+          type="button"
+          class="py-2 px-4 rounded-lg font-semibold border border-dashed text-sm transition-colors"
+          style="border-color: #f59e0b88; color: #fbbf24;"
+          @click="devBypass"
+        >
+          ⚡ Accès dev (sans backend)
+        </button>
       </form>
 
       <p class="text-center mt-6 text-sm" style="color: #8696a0;">
@@ -60,6 +70,7 @@ const email = ref('')
 const password = ref('')
 const error = ref('')
 const loading = ref(false)
+const isDev = import.meta.env.DEV
 
 async function handleSubmit() {
   error.value = ''
@@ -72,5 +83,15 @@ async function handleSubmit() {
   } finally {
     loading.value = false
   }
+}
+
+function devBypass() {
+  auth.setTokens('dev-token', 'dev-refresh', {
+    id: 'usr-dev',
+    username: 'dev',
+    display_name: 'Dev User',
+    email: 'dev@storm.local',
+  })
+  router.push('/')
 }
 </script>
