@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { api } from '@/services/api'
 
 interface User {
   id: string
@@ -100,5 +101,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { accessToken, refreshToken, user, isAuthenticated, login, register, refresh, logout, clear, setTokens }
+  async function updateProfile(display_name: string, avatar_url?: string) {
+    if (!user.value) return
+    const body: Record<string, string> = { display_name }
+    if (avatar_url) body.avatar_url = avatar_url
+    await api.put(`/users/${user.value.id}`, body)
+    user.value = { ...user.value, display_name, ...(avatar_url ? { avatar_url } : {}) }
+    localStorage.setItem('user', JSON.stringify(user.value))
+  }
+
+  return { accessToken, refreshToken, user, isAuthenticated, login, register, refresh, logout, clear, setTokens, updateProfile }
 })
