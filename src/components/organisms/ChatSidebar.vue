@@ -3,12 +3,8 @@
     <div class="border-b border-white/10 px-4 py-4">
       <div class="mb-3 flex items-center justify-between">
         <div>
-          <p class="text-2xl font-semibold text-[#e9edef]">
-            Chats
-          </p>
-          <p class="text-xs text-[#8696a0]">
-            {{ currentAccount?.name }} - {{ currentAccount?.role }}
-          </p>
+          <p class="text-2xl font-semibold text-[#e9edef]">Chats</p>
+          <p class="text-xs text-[#8696a0]">{{ currentAccount?.name }} - {{ currentAccount?.role }}</p>
         </div>
         <div class="flex items-center gap-1">
           <UButton
@@ -28,17 +24,31 @@
         </div>
       </div>
 
-      <!-- User connecté -->
-      <div v-if="auth.user" class="mb-3 flex items-center gap-2 rounded-lg bg-[#202c33] px-3 py-2">
-        <div class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white" style="background: #00a884;">
+      <!-- Bannière utilisateur connecté — cliquable pour ouvrir le profil -->
+      <button
+        v-if="auth.user"
+        class="mb-3 flex w-full items-center gap-2 rounded-lg bg-[#202c33] px-3 py-2 text-left transition-colors hover:bg-[#2a3942]"
+        @click="profileOpen = true"
+      >
+        <div
+          v-if="!auth.user.avatar_url"
+          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+          style="background: #00a884;"
+        >
           {{ auth.user.display_name.slice(0, 2).toUpperCase() }}
         </div>
+        <img
+          v-else
+          :src="auth.user.avatar_url"
+          alt="avatar"
+          class="h-8 w-8 shrink-0 rounded-full object-cover"
+        />
         <div class="min-w-0 flex-1">
           <p class="truncate text-sm font-medium text-[#e9edef]">{{ auth.user.display_name }}</p>
           <p class="truncate text-xs text-[#8696a0]">@{{ auth.user.username }}</p>
         </div>
-        <span class="h-2 w-2 rounded-full bg-[#00a884]" title="Connecté" />
-      </div>
+        <span class="h-2 w-2 shrink-0 rounded-full bg-[#00a884]" title="Connecté" />
+      </button>
 
       <div class="chat-scroll mb-3 flex gap-2 overflow-x-auto pb-1">
         <AccountChip
@@ -73,6 +83,9 @@
       @close="createConversationOpen = false"
       @create="handleCreateConversation"
     />
+
+    <!-- Modal profil utilisateur -->
+    <UserProfileModal :open="profileOpen" @close="profileOpen = false" />
   </aside>
 </template>
 
@@ -80,6 +93,7 @@
 import AccountChip from '@/components/molecules/AccountChip.vue'
 import ConversationItem from '@/components/molecules/ConversationItem.vue'
 import CreateConversationPanel from '@/components/organisms/CreateConversationPanel.vue'
+import UserProfileModal from '@/components/organisms/UserProfileModal.vue'
 import type { Account, Conversation, CreateConversationPayload, DirectoryUser } from '@/types/chat'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
@@ -96,6 +110,7 @@ const emit = defineEmits<{
 
 const conversationSearch = ref('')
 const createConversationOpen = ref(false)
+const profileOpen = ref(false)
 
 const props = defineProps<{
   conversations: Conversation[]
@@ -106,19 +121,15 @@ const props = defineProps<{
 
 const filteredConversations = computed(() => {
   const search = conversationSearch.value.trim().toLowerCase()
-
-  if (!search) {
-    return props.conversations
-  }
-
-  return props.conversations.filter((conversation) => {
-    return conversation.name.toLowerCase().includes(search) || conversation.preview.toLowerCase().includes(search)
-  })
+  if (!search) return props.conversations
+  return props.conversations.filter(c =>
+    c.name.toLowerCase().includes(search) || c.preview.toLowerCase().includes(search)
+  )
 })
 
-const currentAccount = computed(() => {
-  return props.accounts.find((account) => account.id === props.currentAccountId) ?? null
-})
+const currentAccount = computed(() =>
+  props.accounts.find(a => a.id === props.currentAccountId) ?? null
+)
 
 function handleCreateConversation(payload: CreateConversationPayload) {
   emit('createConversation', payload)
