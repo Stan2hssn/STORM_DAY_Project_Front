@@ -19,6 +19,8 @@ export interface Message {
   senderId?: string
   conversationId?: string
   attachment?: string
+  rawTimestamp?: number
+  deleted?: boolean
 }
 
 export interface Account {

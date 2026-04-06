@@ -42,6 +42,8 @@ export function useChatWorkspace() {
           side: 'left',
           senderId: msg.user,
           conversationId: convId,
+          attachment: msg.attachment || undefined,
+          rawTimestamp: Date.now(),
         })
 
         const conv = chat.conversations.find(c => c.id === convId)
