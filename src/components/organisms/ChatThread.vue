@@ -50,18 +50,15 @@
     </div>
 
     <div ref="threadEl" class="chat-scroll chat-thread-bg flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
-      <DateDivider />
 
       <template v-if="searchQuery && displayedMessages.length === 0">
         <p class="text-center text-sm text-[#8696a0]">Aucun message ne correspond à votre recherche.</p>
       </template>
 
-      <MessageBubble
-        v-for="message in displayedMessages"
-        :key="message.id"
-        :message="message"
-        :search-highlight="searchQuery"
-      />
+      <template v-for="item in threadItems" :key="item.key">
+        <DateDivider v-if="item.type === 'divider'" :label="item.label" />
+        <MessageBubble v-else :message="item.message" />
+      </template>
 
       <p class="mx-auto max-w-5xl text-center text-sm text-[#8696a0]">{{ systemMessage }}</p>
 
@@ -100,6 +97,23 @@ import { useBlockStore } from '@/stores/block'
 import type { Conversation, Message } from '@/types/chat'
 import { ref, computed, watch, nextTick } from 'vue'
 
+// ── Date helpers ──────────────────────────────────────────────────────────────
+
+function dateLabel(ts: number): string {
+  const ms = ts > 1_000_000_000_000 ? ts : ts * 1000
+  const d = new Date(ms)
+  const now = new Date()
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (d.toDateString() === now.toDateString()) return "Aujourd'hui"
+  if (d.toDateString() === yesterday.toDateString()) return 'Hier'
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
+type ThreadItem =
+  | { type: 'divider'; label: string; key: string }
+  | { type: 'message'; message: Message; key: string }
+
 const props = withDefaults(defineProps<{
   messages: Message[]
   conversation: Conversation | null
@@ -137,6 +151,23 @@ const displayedMessages = computed(() => {
 })
 
 const searchResultCount = computed(() => displayedMessages.value.length)
+
+const threadItems = computed<ThreadItem[]>(() => {
+  const items: ThreadItem[] = []
+  let lastDateKey = ''
+  for (const msg of displayedMessages.value) {
+    if (msg.rawTimestamp) {
+      const ms = msg.rawTimestamp > 1_000_000_000_000 ? msg.rawTimestamp : msg.rawTimestamp * 1000
+      const dateKey = new Date(ms).toDateString()
+      if (dateKey !== lastDateKey) {
+        lastDateKey = dateKey
+        items.push({ type: 'divider', label: dateLabel(msg.rawTimestamp), key: `divider-${dateKey}` })
+      }
+    }
+    items.push({ type: 'message', message: msg, key: msg.id })
+  }
+  return items
+})
 
 function toggleSearch() {
   searchOpen.value = !searchOpen.value
