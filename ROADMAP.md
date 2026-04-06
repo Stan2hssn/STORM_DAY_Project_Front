@@ -21,7 +21,7 @@
 - [x] WebSocket pour les messages en temps réel
 - [ ] Pagination des messages (next_cursor déjà retourné par l'API, non utilisé)
 - [ ] Scroll infini — charger les messages plus anciens au scroll vers le haut
-- [ ] Fix : les messages reçus via WebSocket ne contiennent pas l'attachment (useChatWorkspace.ts:37)
+- [x] Fix : les messages reçus via WebSocket ne contiennent pas l'attachment (useChatWorkspace.ts:37)
 - [ ] Détection de doublons : ne pas créer une nouvelle conversation 1-on-1 si elle existe déjà
 - [ ] Optimistic update — afficher le message immédiatement avant confirmation API
 - [ ] Retry visible si l'envoi d'un message échoue
@@ -61,12 +61,12 @@
 
 ## 4. Messages — Actions
 
-- [ ] Supprimer son propre message (DELETE /api/messages/{id} — API prête)
-- [ ] Éditer son propre message (PUT /api/messages/{id} — API prête)
+- [x] Supprimer son propre message (DELETE /api/messages/{id})
+- [x] Éditer son propre message (PUT /api/messages/{id})
 - [ ] Répondre à un message (reply avec citation)
-- [ ] Copier le texte d'un message
-- [ ] Menu contextuel sur un message (hover ou clic droit) : Répondre / Copier / Modifier / Supprimer
-- [ ] Placeholder "Message supprimé" quand un message est effacé
+- [x] Copier le texte d'un message
+- [x] Menu contextuel sur un message (hover) : Copier / Modifier / Supprimer
+- [x] Placeholder "Message supprimé" quand un message est effacé
 - [ ] Double coche ✓✓ envoyé/lu (message_receipts existe en base, rien dans le front)
 - [ ] Timestamp affiché au hover uniquement (actuellement toujours visible)
 
@@ -90,7 +90,7 @@
 - [x] Notifications (badge favicon / notification navigateur)
 - [ ] Bouton "Retour en bas" quand l'utilisateur scrolle vers le haut
 - [ ] Bouton "Aller aux non-lus"
-- [ ] Séparateurs de dates réels dans le thread (DateDivider actuellement hardcodé)
+- [x] Séparateurs de dates réels dans le thread (Aujourd'hui / Hier / date complète)
 - [ ] Skeletons de chargement pour la liste de conversations
 - [ ] Indicateur de statut WebSocket visible dans la sidebar (wsConnected exposé mais non affiché)
 - [ ] Statut en ligne des contacts (DirectoryUser.status existe mais jamais alimenté)
@@ -99,9 +99,9 @@
 
 ## 7. Sidebar
 
-- [ ] La bannière utilisateur connecté cliquable → ouvre le profil
-- [ ] Trier les conversations (par date, non-lus en premier)
-- [ ] Conversations archivées (section dédiée)
+- [x] La bannière utilisateur connecté cliquable → ouvre le profil
+- [x] Trier les conversations (par date, non-lus en premier)
+- [x] Conversations archivées (section dédiée)
 
 ---
 
@@ -138,6 +138,20 @@
 - [x] Active highlighting conversations + badges non-lus
 - [x] Notifications navigateur (Web Notification API)
 - [x] Panel infos conversation (membres, rôles, quitter)
+
+### 2026-04-06 (suite)
+- [x] Trier les conversations — bouton toggle "non-lus en premier" dans la sidebar
+- [x] Archiver une conversation — bouton hover sur ConversationItem + section dédiée dans la sidebar
+- [x] useArchiveStore (Pinia + localStorage)
+- [x] Bannière sidebar marquée comme done (déjà implémentée session précédente)
+
+### 2026-04-06
+- [x] Fix attachment via WebSocket (ws.ts + useChatWorkspace.ts)
+- [x] Supprimer son message — menu hover + DELETE /api/messages/{id} + placeholder "supprimé"
+- [x] Éditer son message — input inline + PUT /api/messages/{id}
+- [x] Copier le texte d'un message (clipboard API)
+- [x] Séparateurs de dates réels dans le thread (Aujourd'hui / Hier / date)
+- [x] types/chat.ts — ajout rawTimestamp et deleted sur Message
 
 ### 2026-04-01
 - [x] Onglet "Médias partagés" dans ConversationInfoPanel (galerie images + liste fichiers + lightbox navigable)
