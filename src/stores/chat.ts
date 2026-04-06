@@ -92,6 +92,7 @@ export const useChatStore = defineStore('chat', () => {
       senderId: msg.sender_id,
       conversationId: String(msg.conversation_id),
       attachment: msg.attachment || undefined,
+      rawTimestamp: msg.created_at,
     }
   }
 
@@ -221,6 +222,40 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  // ── Delete / Edit message ─────────────────────────────────────────────────────
+
+  async function deleteMessage(messageId: string): Promise<boolean> {
+    try {
+      await api.delete(`/api/messages/${messageId}`)
+      for (const msgs of Object.values(messagesByConversation.value)) {
+        const idx = msgs.findIndex(m => m.id === messageId)
+        if (idx !== -1) {
+          msgs[idx] = { ...msgs[idx]!, text: '', deleted: true }
+          break
+        }
+      }
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  async function editMessage(messageId: string, content: string): Promise<boolean> {
+    try {
+      await api.put(`/api/messages/${messageId}`, { content })
+      for (const msgs of Object.values(messagesByConversation.value)) {
+        const idx = msgs.findIndex(m => m.id === messageId)
+        if (idx !== -1) {
+          msgs[idx] = { ...msgs[idx]!, text: content }
+          break
+        }
+      }
+      return true
+    } catch {
+      return false
+    }
+  }
+
   // ── Leave conversation ────────────────────────────────────────────────────────
 
   async function leaveConversation(convId: string): Promise<boolean> {
@@ -265,5 +300,7 @@ export const useChatStore = defineStore('chat', () => {
     createConversation,
     leaveConversation,
     setActiveConversation,
+    deleteMessage,
+    editMessage,
   }
 })
