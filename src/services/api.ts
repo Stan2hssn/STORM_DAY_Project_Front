@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/stores/auth'
 
-const BASE_URL = ''
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, '') ?? ''
 
 function withUserId(path: string, userId: string): string {
   const sep = path.includes('?') ? '&' : '?'

@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, '') ?? ''
+
+function apiUrl(path: string): string {
+  return `${API_BASE_URL}${path}`
+}
+
 interface User {
   id: string
   username: string
@@ -39,7 +45,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(email: string, password: string) {
-    const res = await fetch('/auth/login', {
+    const res = await fetch(apiUrl('/auth/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -55,7 +61,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function register(username: string, display_name: string, email: string, password: string) {
-    const res = await fetch('/auth/register', {
+    const res = await fetch(apiUrl('/auth/register'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, display_name, email, password }),
@@ -72,7 +78,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function refresh(): Promise<boolean> {
     if (!refreshToken.value) return false
     try {
-      const res = await fetch('/auth/refresh', {
+      const res = await fetch(apiUrl('/auth/refresh'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: refreshToken.value }),
@@ -91,7 +97,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout() {
     try {
-      await fetch('/auth/logout', {
+      await fetch(apiUrl('/auth/logout'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken.value}` },
       })
@@ -102,7 +108,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function updateProfile(displayName: string): Promise<void> {
     if (!user.value) throw new Error('Not authenticated')
-    const res = await fetch(`/users/${user.value.id}`, {
+    const res = await fetch(apiUrl(`/users/${user.value.id}`), {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -122,7 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function updatePassword(currentPassword: string, newPassword: string): Promise<void> {
     if (!user.value) throw new Error('Not authenticated')
-    const res = await fetch(`/users/${user.value.id}`, {
+    const res = await fetch(apiUrl(`/users/${user.value.id}`), {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
