@@ -116,6 +116,7 @@ const emit = defineEmits<{
   typing: []
 }>()
 
+const auth = useAuthStore()
 const draft = ref('')
 const inputRef = ref<{ $el: HTMLElement } | null>(null)
 

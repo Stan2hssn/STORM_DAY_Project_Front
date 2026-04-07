@@ -134,6 +134,8 @@ const emit = defineEmits<{
   'scroll-to': [messageId: string]
 }>()
 
+const lightboxOpen = ref(false)
+
 const initials = computed(() => props.message.author.slice(0, 2).toUpperCase())
 const isRight = computed(() => props.message.side === 'right')
 const showAuthor = computed(() => !isRight.value && props.isGroup && props.isFirstInGroup)

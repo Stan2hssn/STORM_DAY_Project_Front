@@ -20,6 +20,7 @@ declare module 'vue' {
     ChatMembersRail: typeof import('./src/components/organisms/ChatMembersRail.vue')['default']
     ChatSidebar: typeof import('./src/components/organisms/ChatSidebar.vue')['default']
     ChatThread: typeof import('./src/components/organisms/ChatThread.vue')['default']
+    ConversationInfoPanel: typeof import('./src/components/organisms/ConversationInfoPanel.vue')['default']
     ConversationItem: typeof import('./src/components/molecules/ConversationItem.vue')['default']
     CreateConversationPanel: typeof import('./src/components/organisms/CreateConversationPanel.vue')['default']
     DateDivider: typeof import('./src/components/molecules/DateDivider.vue')['default']

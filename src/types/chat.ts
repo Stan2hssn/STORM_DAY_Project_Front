@@ -100,3 +100,49 @@ export interface CreateGroupPayload {
   name: string
   memberIds: string[]
 }
+
+// ── Backend API shapes ──────────────────────────────────────────────────────────
+
+export interface ApiGroup {
+  id: number
+  name: string
+  avatar_url: string
+  created_by: string
+  created_at: number
+  updated_at: number
+}
+
+export interface ApiMessage {
+  id: number
+  sender_id: string
+  conversation_id: number
+  content: string
+  attachment: string
+  created_at: number
+  updated_at: number
+}
+
+export interface ApiGroupsResponse {
+  ok: boolean
+  data?: ApiGroup[]
+  error?: { code: string; message: string }
+}
+
+export interface ApiMessagesResponse {
+  ok: boolean
+  data?: ApiMessage[]
+  next_cursor?: string
+  error?: { code: string; message: string }
+}
+
+export interface ApiSendMessageResponse {
+  ok: boolean
+  data?: ApiMessage
+  error?: { code: string; message: string }
+}
+
+export interface ApiGroupResponse {
+  ok: boolean
+  data?: ApiGroup
+  error?: { code: string; message: string }
+}

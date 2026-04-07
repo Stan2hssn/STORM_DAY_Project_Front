@@ -90,6 +90,7 @@ import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
   messages: Message[]
+  conversation: Conversation | null
   chatName: string
   systemMessage: string
   loading: boolean
