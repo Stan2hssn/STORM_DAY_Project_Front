@@ -43,7 +43,32 @@
           <span class="font-medium" style="color: var(--chat-accent)">{{ message.author }}</span>
           <span v-if="message.authorUsername" class="ml-1" style="color: var(--chat-text-muted)">@{{ message.authorUsername }}</span>
         </p>
-        <p class="text-sm">
+        <!-- Attachment image/video -->
+        <div v-if="message.attachment" class="mb-1 max-w-xs overflow-hidden rounded-lg">
+          <img
+            v-if="/\.(jpe?g|png|gif|webp|svg|bmp)(\?|$)/i.test(message.attachment)"
+            :src="message.attachment"
+            class="max-h-64 w-full cursor-pointer rounded-lg object-cover"
+            alt="media"
+            @click="openAttachment(message.attachment!)"
+          />
+          <video
+            v-else-if="/\.(mp4|webm|avi)(\?|$)/i.test(message.attachment)"
+            :src="message.attachment"
+            controls
+            class="max-h-64 w-full rounded-lg"
+          />
+          <a
+            v-else
+            :href="message.attachment"
+            target="_blank"
+            class="flex items-center gap-2 text-sm underline"
+            style="color: var(--chat-accent)"
+          >
+            📎 {{ message.attachment.split('/').pop() }}
+          </a>
+        </div>
+        <p v-if="message.text?.trim() && !(message.attachment && message.text === '📎')" class="text-sm">
           {{ message.text }}
           <span
             v-if="message.modified"
@@ -109,6 +134,7 @@ import MessageOptionsMenu from '@/components/molecules/MessageOptionsMenu.vue';
 import MessageReplyQuote from '@/components/molecules/MessageReplyQuote.vue';
 import MessageSeenByAvatars from '@/components/molecules/MessageSeenByAvatars.vue';
 import { useAuthStore } from '@/stores/auth';
+import { useChatStore } from '@/stores/chat';
 import type { Message } from '@/types/chat';
 import { computed, ref } from 'vue';
 
@@ -142,6 +168,10 @@ const editInput = ref<HTMLInputElement | null>(null)
 
 const initials = computed(() => props.message.author.slice(0, 2).toUpperCase())
 const isRight = computed(() => props.message.side === 'right')
+
+function openAttachment(url: string) {
+  window.open(url, '_blank')
+}
 const showAuthor = computed(() => !isRight.value && props.isGroup && props.isFirstInGroup)
 
 /** Show the "Forwarded" mention as soon as the message has forward metadata or flag. */

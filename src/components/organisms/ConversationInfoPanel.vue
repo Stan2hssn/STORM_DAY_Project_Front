@@ -222,6 +222,14 @@
           block
           @click="emit('leave')"
         />
+        <UButton
+          label="Supprimer la discussion"
+          icon="i-lucide-trash-2"
+          color="error"
+          variant="solid"
+          block
+          @click="emit('delete')"
+        />
       </div>
     </aside>
   </Transition>
@@ -308,6 +316,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   leave: []
+  delete: []
 }>()
 
 const auth = useAuthStore()
@@ -339,10 +348,7 @@ const lightboxIndex = ref<number | null>(null)
 
 // ── Médias partagés ────────────────────────────────────────────────────────────
 
-const conversationMessages = computed(() => {
-  if (!props.conversation) return []
-  return chatStore.messagesByConversation[props.conversation.id] ?? []
-})
+const conversationMessages = computed(() => chatStore.activeMessages)
 
 function isImageUrl(url: string): boolean {
   return /\.(jpe?g|png|gif|webp|svg|bmp)(\?|$)/i.test(url)

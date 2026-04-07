@@ -6,7 +6,7 @@ import { defineConfig } from 'vite';
 import glsl from 'vite-plugin-glsl';
 import vueDevTools from 'vite-plugin-vue-devtools';
 
-const BACKEND_TARGET = 'http://20.19.103.52:8080';
+const BACKEND_TARGET = 'http://localhost:8080';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -34,6 +34,8 @@ export default defineConfig({
       '/api': { target: BACKEND_TARGET, changeOrigin: true },
       '/auth': { target: BACKEND_TARGET, changeOrigin: true },
       '/users': { target: BACKEND_TARGET, changeOrigin: true },
+      '/media': { target: BACKEND_TARGET, changeOrigin: true },
+      '/media-files': { target: 'http://localhost:9000', changeOrigin: true, rewrite: (path) => path.replace(/^\/media-files/, '') },
     }
   }
 });

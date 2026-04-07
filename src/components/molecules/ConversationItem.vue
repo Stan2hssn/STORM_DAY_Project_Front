@@ -39,8 +39,6 @@ const props = defineProps<{
 
 defineEmits<{ select: [conversationId: string] }>()
 
-const archiveStore = useArchiveStore()
-
 const initials = computed(() => props.conversation.name.slice(0, 2).toUpperCase())
 </script>
 

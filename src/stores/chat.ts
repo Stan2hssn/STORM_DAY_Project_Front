@@ -925,6 +925,7 @@ export const useChatStore = defineStore('chat', () => {
           replyTo,
           forwardFrom,
           isForwarded,
+          attachment: (dto.attachment ?? dto.attachmentUrl ?? dto.attachment_url ?? undefined) as string | undefined,
           modified: modifiedFromApi,
           status: senderId === currentUserId
             ? ((dto.status as string) as Message['status']) || 'sent'
@@ -1012,6 +1013,19 @@ export const useChatStore = defineStore('chat', () => {
     });
   }
 
+  async function deleteConversation(conversationId: string) {
+    try {
+      await api.delete(`/api/groups/${conversationId}`);
+      conversations.value = conversations.value.filter((c) => c.id !== conversationId);
+      if (activeConversationId.value === conversationId) {
+        activeConversationId.value = conversations.value[0]?.id ?? null;
+        sessionStorage.removeItem('activeConversationId');
+      }
+    } catch (err) {
+      console.error('[chat] deleteConversation failed:', err);
+    }
+  }
+
   async function createConversation(payload: CreateGroupPayload) {
     try {
       const raw = await api.post<unknown>('/api/groups', {
@@ -1055,6 +1069,7 @@ export const useChatStore = defineStore('chat', () => {
     forwardFromMessageId?: string
     /** Forward preview (optimistic + fallback if the API does not return the nested object). */
     forwardFromPreview?: ForwardFrom
+    attachment?: string
   }
 
   function parseNumericId(id: string | undefined): number | undefined {
@@ -1070,7 +1085,7 @@ export const useChatStore = defineStore('chat', () => {
   ): Promise<SendMessageResult> {
     const cleaned = content.trim()
     const conversationId = options?.conversationId ?? activeConversationId.value
-    if (!cleaned || !conversationId) {
+    if (!cleaned && !options?.attachment || !conversationId) {
       return { ok: false, error: 'Missing message text or conversation.' }
     }
 
@@ -1088,6 +1103,7 @@ export const useChatStore = defineStore('chat', () => {
       replyTo: replyTo || undefined,
       forwardFrom: options?.forwardFromPreview,
       isForwarded: isFwdSend,
+      attachment: options?.attachment,
       status: 'sending',
     }
 
@@ -1112,7 +1128,10 @@ export const useChatStore = defineStore('chat', () => {
       const body: Record<string, unknown> = {
         sender_id: auth.user?.id,
         conversation_id: convIdForApi,
-        content: cleaned,
+        content: cleaned || (options?.attachment ? '📎' : ''),
+      }
+      if (options?.attachment) {
+        body.attachment = options.attachment
       }
       if (replyToNumeric != null) {
         body.reply_to_id = replyToNumeric
@@ -1259,6 +1278,7 @@ export const useChatStore = defineStore('chat', () => {
     fetchConversations,
     selectConversation,
     createConversation,
+    deleteConversation,
     sendMessage,
     editMessage,
     emitTyping,

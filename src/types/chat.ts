@@ -48,6 +48,7 @@ export interface Conversation {
   preview: string
   time: string
   unread: number
+  avatarUrl?: string
 }
 
 export interface ReplyTo {
@@ -87,6 +88,7 @@ export interface Message {
   seenBy?: SeenByUser[]
   /** True if the message was edited (REST or WebSocket update). */
   modified?: boolean
+  attachment?: string
 }
 
 export interface ChatUser {

@@ -94,8 +94,8 @@
               @click="layoutRef?.backToSidebar()"
             />
             <BaseAvatar :text="chatAvatar" size="md" :aria-hidden="true" />
-            <div>
-              <h2 class="text-xl font-medium" style="color: var(--chat-text)">
+            <div class="cursor-pointer" @click="infoOpen = true">
+              <h2 class="text-xl font-medium hover:underline" style="color: var(--chat-text)">
                 {{ chatName }}
               </h2>
               <p v-if="isGroup" class="text-xs" style="color: var(--chat-text-secondary)">
@@ -105,15 +105,9 @@
           </div>
 
           <div class="flex items-center gap-2">
-            <!-- TODO(feat/message-search): open in-conversation search panel on click.
-                 Required API: GET /api/messages/search?conversation_id={id}&q={query}
-                 Returns: paginated Message[]
-                 UI: slide-in search bar above thread, highlight matching messages, jump-to result. -->
-            <IconGhostButton icon="i-lucide-search" label="Search messages" />
-            <!-- TODO(feat/conversation-options): open conversation options panel on click.
-                 Actions needed: leave group, mute notifications, clear history (local).
-                 Required API: DELETE /api/groups/{id}/members/{userId} (leave), PATCH /api/groups/{id} (mute). -->
-            <IconGhostButton icon="i-lucide-ellipsis-vertical" label="More options" />
+            <UDropdownMenu :items="conversationMenuItems">
+              <IconGhostButton icon="i-lucide-ellipsis-vertical" label="More options" />
+            </UDropdownMenu>
           </div>
         </div>
       </div>
@@ -124,6 +118,7 @@
       <div class="flex h-full min-h-0 flex-col">
         <ChatThread
           ref="chatThreadRef"
+          :conversation="chatStore.activeConversation"
           :messages="chatStore.activeMessages"
           :chat-name="chatName"
           :system-message="chatStore.systemMessage"
@@ -131,6 +126,7 @@
           :is-group="isGroup"
           :typing-users="chatStore.activeTypingUsers"
           @send="handleSendMessage"
+          @send-media="handleSendMedia"
           @update-message="handleUpdateMessage"
           @forward-message="handleForwardMessage"
           @typing="chatStore.emitTyping"
@@ -142,6 +138,14 @@
   <AccountSettingsModal
     v-if="settingsOpen"
     @close="settingsOpen = false"
+  />
+
+  <ConversationInfoPanel
+    :open="infoOpen"
+    :conversation="chatStore.activeConversation"
+    @close="infoOpen = false"
+    @leave="infoOpen = false"
+    @delete="handleDeleteConversation"
   />
 
   <ForwardConversationPicker
@@ -161,6 +165,7 @@ import ForwardConversationPicker from '@/components/molecules/ForwardConversatio
 import AccountSettingsModal from '@/components/organisms/AccountSettingsModal.vue';
 import ChatSidebar from '@/components/organisms/ChatSidebar.vue';
 import ChatThread from '@/components/organisms/ChatThread.vue';
+import ConversationInfoPanel from '@/components/organisms/ConversationInfoPanel.vue';
 import ChatLayoutTemplate from '@/components/templates/ChatLayoutTemplate.vue';
 import { useGsap } from '@/composables/useGsap';
 import { useThemeToggle } from '@/composables/useThemeToggle';
@@ -179,10 +184,41 @@ const chatThreadRef = ref<InstanceType<typeof ChatThread> | null>(null)
 const chatHeaderIdentityRef = ref<HTMLDivElement | null>(null)
 const forwardMessage = ref<Message | null>(null)
 const settingsOpen = ref(false)
+const infoOpen = ref(false)
 const gsap = useGsap()
 let headerTimeline: gsap.core.Timeline | null = null
 
 const { isDark, toggleTheme } = useThemeToggle()
+
+const conversationMenuItems = computed(() => [
+  [{
+    label: 'Médias partagés',
+    icon: 'i-lucide-image',
+    onSelect: () => { infoOpen.value = true },
+  }],
+  [{
+    label: 'Renommer',
+    icon: 'i-lucide-pencil',
+    onSelect: () => { infoOpen.value = true },
+  },
+  {
+    label: 'Ajouter un membre',
+    icon: 'i-lucide-user-plus',
+    onSelect: () => { infoOpen.value = true },
+  }],
+  [{
+    label: 'Quitter la conversation',
+    icon: 'i-lucide-log-out',
+    color: 'error' as const,
+    onSelect: () => { infoOpen.value = true },
+  },
+  {
+    label: 'Supprimer la discussion',
+    icon: 'i-lucide-trash-2',
+    color: 'error' as const,
+    onSelect: () => handleDeleteConversation(),
+  }],
+])
 const isMobileThread = computed(() => !!chatStore.activeConversationId)
 const isGroup = computed(() => chatStore.activeMembers.length > 2)
 const chatName = computed(() => chatStore.activeConversationDisplayName)
@@ -276,6 +312,13 @@ watch(chatTransitionKey, async () => {
   })
 }, { immediate: true })
 
+async function handleDeleteConversation() {
+  const id = chatStore.activeConversationId
+  if (!id) return
+  infoOpen.value = false
+  await chatStore.deleteConversation(id)
+}
+
 async function handleCreateConversation(payload: CreateGroupPayload) {
   await chatStore.createConversation(payload)
   layoutRef.value?.selectThread()
@@ -295,6 +338,12 @@ async function handleSelectConversation(id: string) {
 function handleSendMessage(text: string, replyTo?: ReplyTo) {
   chatStore.sendMessage(text, replyTo).catch((error: unknown) => {
     console.error('[ChatView] sendMessage failed:', error)
+  })
+}
+
+function handleSendMedia(url: string) {
+  chatStore.sendMessage(' ', undefined, { attachment: url }).catch((error: unknown) => {
+    console.error('[ChatView] sendMedia failed:', error)
   })
 }
 

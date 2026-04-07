@@ -68,6 +68,7 @@
           :reply-to="replyTo"
           :edit-target="editTarget"
           @send="handleSend"
+          @send-media="(url) => emit('send-media', url)"
           @update-message="handleComposerUpdateMessage"
           @cancel-reply="replyTo = null"
           @cancel-edit="editTarget = null"
@@ -85,7 +86,7 @@ import DateDivider from '@/components/molecules/DateDivider.vue';
 import MessageBubble from '@/components/molecules/MessageBubble.vue';
 import TypingIndicator from '@/components/molecules/TypingIndicator.vue';
 import { useGsap } from '@/composables/useGsap';
-import type { Message, ReplyTo } from '@/types/chat';
+import type { Conversation, Message, ReplyTo } from '@/types/chat';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -101,6 +102,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   send: [text: string, replyTo?: ReplyTo]
+  'send-media': [url: string]
   'update-message': [id: string, text: string]
   'forward-message': [message: Message]
   typing: []
