@@ -134,7 +134,11 @@ const emit = defineEmits<{
   'scroll-to': [messageId: string]
 }>()
 
+const chat = useChatStore()
 const lightboxOpen = ref(false)
+const isEditing = ref(false)
+const editDraft = ref('')
+const editInput = ref<HTMLInputElement | null>(null)
 
 const initials = computed(() => props.message.author.slice(0, 2).toUpperCase())
 const isRight = computed(() => props.message.side === 'right')

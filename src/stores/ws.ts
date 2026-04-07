@@ -8,6 +8,7 @@ interface WsMessage {
   user: string
   username: string
   content: string
+  attachment?: string
 }
 
 interface TypingEntry {
