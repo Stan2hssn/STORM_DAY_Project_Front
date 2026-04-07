@@ -67,7 +67,6 @@
         <div v-else class="flex items-center gap-1">
           <p class="text-lg font-semibold text-[#e9edef]">{{ conversation?.name }}</p>
           <UButton
-            v-if="isAdmin"
             icon="i-lucide-pencil"
             color="neutral"
             variant="ghost"
@@ -82,7 +81,7 @@
       </div>
 
       <!-- Ajouter un membre (admin/owner, groupes seulement) -->
-      <div v-if="isAdmin && !is1on1" class="border-b border-white/10 px-4 py-3">
+      <div v-if="!is1on1" class="border-b border-white/10 px-4 py-3">
         <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8696a0]">Ajouter un membre</p>
         <div class="flex gap-2">
           <input
@@ -220,7 +219,7 @@
           color="error"
           variant="ghost"
           block
-          @click="emit('leave')"
+          @click="leaveConversation"
         />
         <UButton
           label="Supprimer la discussion"
@@ -498,12 +497,15 @@ function startEditName() {
 async function saveGroupName() {
   if (!props.conversation || !newName.value.trim()) return
   savingName.value = true
+  const trimmed = newName.value.trim()
+  // Update locally immediately (API route may not exist yet)
+  const conv = chatStore.conversations.find(c => c.id === props.conversation!.id)
+  if (conv) conv.name = trimmed
+  isEditingName.value = false
   try {
-    await api.patch(`/api/groups/${props.conversation.id}`, { name: newName.value.trim() })
-    props.conversation.name = newName.value.trim()
-    isEditingName.value = false
+    await api.patch(`/api/groups/${props.conversation.id}`, { name: trimmed })
   } catch {
-    // silently ignore
+    // silently ignore — local update already applied
   } finally {
     savingName.value = false
   }
@@ -515,9 +517,17 @@ function searchUsers() {
   if (!searchQuery.value.trim()) { searchResults.value = []; return }
   searchTimer = setTimeout(async () => {
     try {
-      const results = await api.get<ApiUser[]>(`/users/search?q=${encodeURIComponent(searchQuery.value)}`)
+      const raw = await api.get<unknown>(`/users/search?q=${encodeURIComponent(searchQuery.value)}`)
+      // Backend can return array directly or wrapped in { users: [...] } or { data: [...] }
+      const list: ApiUser[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray((raw as Record<string, unknown>)?.users)
+          ? (raw as Record<string, unknown>).users as ApiUser[]
+          : Array.isArray((raw as Record<string, unknown>)?.data)
+            ? (raw as Record<string, unknown>).data as ApiUser[]
+            : []
       const existingIds = new Set(members.value.map(m => m.user_id))
-      searchResults.value = (Array.isArray(results) ? results : []).filter(u => !existingIds.has(u.id))
+      searchResults.value = list.filter(u => u.id && !existingIds.has(String(u.id)))
     } catch {
       searchResults.value = []
     }
@@ -528,14 +538,25 @@ async function addMember(user: ApiUser) {
   if (!props.conversation) return
   addError.value = ''
   try {
-    await api.post(`/api/groups/${props.conversation.id}/members`, { user_id: user.id })
-    members.value.push({ user_id: user.id, role: 0, display_name: user.display_name || user.username, username: user.username })
+    await api.post(`/api/groups/${props.conversation.id}/members`, { user_id: String(user.id), role: 0 })
+    members.value.push({ user_id: String(user.id), role: 0, display_name: user.display_name || user.username, username: user.username })
     members.value.sort((a, b) => b.role - a.role)
     searchQuery.value = ''
     searchResults.value = []
-  } catch {
+  } catch (err) {
     addError.value = 'Impossible d\'ajouter ce membre.'
+    console.error('[InfoPanel] addMember failed:', err)
   }
+}
+
+async function leaveConversation() {
+  if (!props.conversation) return
+  try {
+    await api.post(`/api/groups/${props.conversation.id}/leave`, {})
+  } catch (err) {
+    console.error('[InfoPanel] leave failed:', err)
+  }
+  emit('leave')
 }
 
 async function removeMember(member: Member) {
