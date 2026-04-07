@@ -107,7 +107,7 @@ async function handleSubmit() {
   try {
     await auth.login(email.value, password.value)
     await import('@/views/ChatView.vue')
-    await router.push('/')
+    await router.push({ name: 'chat' })
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Erreur de connexion'
   } finally {

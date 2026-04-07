@@ -22,15 +22,18 @@ const handlers = new Set<MessageHandler>()
 const RECONNECT_DELAY_MS = 3_000
 const HEARTBEAT_INTERVAL_MS = 25_000
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null
+const WS_BASE_URL = (import.meta.env.VITE_WS_BASE_URL as string | undefined)?.replace(/\/+$/, '')
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, '')
 
 function getWsUrl(): string {
   const auth = useAuthStore()
   const token = auth.accessToken ?? ''
-  // Same-origin in dev → Vite `server.proxy['/ws']` → gateway (voir README.md)
-  const proto = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const host = globalThis.location.host
+  // In production, prefer explicit WS URL. Fallback to API URL-derived WS, then same-origin.
+  const origin =
+    WS_BASE_URL
+    ?? (API_BASE_URL ? API_BASE_URL.replace(/^http/i, 'ws') : `${globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${globalThis.location.host}`)
   const q = token ? `?token=${encodeURIComponent(token)}` : ''
-  return `${proto}//${host}/ws${q}`
+  return `${origin}/ws${q}`
 }
 
 function startHeartbeat() {

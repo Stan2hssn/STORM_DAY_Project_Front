@@ -28,6 +28,15 @@ Le front ne définit pas d’URL absolue : `fetch('/api/...')` et `ws(s)://<host
 - **`/api`**, **`/auth`**, **`/users`** → HTTP gateway  
 - **`/ws`** → WebSocket gateway (`ws: true`, `changeOrigin`)
 
+### Déploiement (ex: Vercel)
+
+En production, le proxy Vite n’existe pas. Configure les variables d’environnement:
+
+- `VITE_API_BASE_URL=http://20.19.103.52:8080`
+- `VITE_WS_BASE_URL=ws://20.19.103.52:8080` (optionnel, sinon dérivé de `VITE_API_BASE_URL`)
+
+Sans ces variables, le front tente l’origine Vercel (`https://...vercel.app`) pour `/auth`, `/api`, `/users`, `/ws`, ce qui casse la connexion au backend.
+
 ### Authentification
 
 - **REST :** header `Authorization: Bearer <access_token>` (+ `user_id` en query / `X-User-ID` selon `src/services/api.ts`).
