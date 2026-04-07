@@ -1,7 +1,22 @@
 <!DOCTYPE html>
-<html lang="fr" class="dark">
+<html lang="fr">
   <head>
     <meta charset="UTF-8">
+    <!-- Thème + fond AVANT la première peinture (évite flash blanc ; aligné sur --chat-body clair / sombre) -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme')
+          var dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
+          var root = document.documentElement
+          root.classList.toggle('dark', dark)
+          root.style.backgroundColor = dark ? '#121a18' : '#f0ece8'
+        } catch (e) {
+          document.documentElement.classList.add('dark')
+          document.documentElement.style.backgroundColor = '#121a18'
+        }
+      })()
+    </script>
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vite App</title>

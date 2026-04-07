@@ -2,6 +2,11 @@ import { useAuthStore } from '@/stores/auth'
 
 const BASE_URL = ''
 
+function withUserId(path: string, userId: string): string {
+  const sep = path.includes('?') ? '&' : '?'
+  return `${path}${sep}user_id=${encodeURIComponent(userId)}`
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const auth = useAuthStore()
 
@@ -14,14 +19,29 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers['Authorization'] = `Bearer ${auth.accessToken}`
   }
 
-  let res = await fetch(BASE_URL + path, { ...options, headers })
+  // Pass user_id as query param + header (belt & suspenders — proxy may strip headers)
+  if (auth.user?.id) {
+    headers['X-User-ID'] = auth.user.id
+  }
+  const url = auth.user?.id
+    ? BASE_URL + withUserId(path, auth.user.id)
+    : BASE_URL + path
 
-  // Auto-refresh si 401
+  if (import.meta.env.DEV) {
+    console.debug('[api]', options.method ?? 'GET', url, '| user_id:', auth.user?.id ?? 'NONE')
+  }
+
+  let res = await fetch(url, { ...options, headers })
+
+  // Auto-refresh on 401
   if (res.status === 401 && auth.refreshToken) {
     const refreshed = await auth.refresh()
     if (refreshed) {
       headers['Authorization'] = `Bearer ${auth.accessToken}`
-      res = await fetch(BASE_URL + path, { ...options, headers })
+      const retryUrl = auth.user?.id
+        ? BASE_URL + withUserId(path, auth.user.id)
+        : BASE_URL + path
+      res = await fetch(retryUrl, { ...options, headers })
     } else {
       auth.clear()
       window.location.href = '/login'
@@ -42,7 +62,6 @@ export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
-  put: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
-  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  patch: <T>(path: string, body: unknown) =>
+    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
 }

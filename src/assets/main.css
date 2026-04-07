@@ -4,63 +4,162 @@
 @theme static {
   --font-sans: 'Public Sans', sans-serif;
 
-  --color-green-50: #e7f7f0;
-  --color-green-100: #cef0e2;
-  --color-green-200: #9fdec5;
-  --color-green-300: #6ec9a7;
-  --color-green-400: #31b88f;
-  --color-green-500: #00a884;
-  --color-green-600: #008f72;
-  --color-green-700: #00755f;
-  --color-green-800: #005c4b;
-  --color-green-900: #0f3f35;
-  --color-green-950: #092a23;
+  /* Neutral warm scale used as primary */
+  --color-green-50: #f5f3f0;
+  --color-green-100: #edeae6;
+  --color-green-200: #d5d0c8;
+  --color-green-300: #b5afa5;
+  --color-green-400: #8a8378;
+  --color-green-500: #6b6560;
+  --color-green-600: #5a5450;
+  --color-green-700: #4a4440;
+  --color-green-800: #3a3530;
+  --color-green-900: #2a2520;
+  --color-green-950: #1a1510;
+}
+
+html {
+  background-color: var(--chat-body);
+  min-height: 100%;
+}
+
+html.theme-transition {
+  transition: background-color 0.65s ease;
 }
 
 :root {
-  --ui-radius: 0.6rem;
+  --ui-radius: 0.5rem;
+  --ui-primary: #6b6560;
+  --ui-color-primary-50: #f5f3f0;
+  --ui-color-primary-100: #edeae6;
+  --ui-color-primary-200: #d5d0c8;
+  --ui-color-primary-300: #b5afa5;
+  --ui-color-primary-400: #8a8378;
+  --ui-color-primary-500: #6b6560;
+  --ui-color-primary-600: #5a5450;
+  --ui-color-primary-700: #4a4440;
+  --ui-color-primary-800: #3a3530;
+  --ui-color-primary-900: #2a2520;
+  --ui-color-primary-950: #1a1510;
+
+  /* ─── Light palette ───
+     Warm neutrals only. No vivid color.
+     Scale: warm white → warm gray → dark
+  */
+  --chat-body: #f0ece8;
+  --chat-shell: #ffffff;
+  --chat-shell-shadow: rgb(0 0 0 / 0.08);
+  --chat-thread: #f5f1ed;
+  --chat-surface: #ffffff;
+  --chat-surface-hover: #f5f3f0;
+  --chat-surface-active: #edeae6;
+  --chat-composer: #ffffff;
+  --chat-bubble-in: #ffffff;
+  --chat-bubble-out: #f0ece8;
+  --chat-border: rgb(0 0 0 / 0.07);
+  --chat-text: #1a1a1a;
+  --chat-text-secondary: #6b6560;
+  --chat-text-muted: #9a938c;
+  --chat-accent: #cb6123;
+  --chat-forward-bar: #8a8378;
+  --chat-forward-quote-bg: rgb(0 0 0 / 0.04);
+  --chat-reply-quote-bg: color-mix(in srgb, var(--chat-accent) 9%, transparent);
+  --chat-bubble-radius: 1.125rem;
+  --chat-glass: rgb(255 255 255 / 0.65);
+  --chat-glass-border: rgb(0 0 0 / 0.05);
+  --chat-icon: #6b6560;
+  --chat-icon-hover: #f0ece8;
+  --chat-modal-overlay: rgb(0 0 0 / 0.3);
+  --chat-scroll-thumb: rgb(0 0 0 / 0.12);
+  --chat-thread-dot: rgb(0 0 0 / 0.03);
 }
 
 .dark {
-  --ui-primary: var(--ui-color-primary-500);
+  /* Override Nuxt UI neutral scale (kills the blue) */
+  --ui-color-neutral-50: #f2f1ec;
+  --ui-color-neutral-100: #e2e0d6;
+  --ui-color-neutral-200: #c5c2b0;
+  --ui-color-neutral-300: #a8a58e;
+  --ui-color-neutral-400: #8a8870;
+  --ui-color-neutral-500: #6a6858;
+  --ui-color-neutral-600: #55534a;
+  --ui-color-neutral-700: #3a3832;
+  --ui-color-neutral-800: #242c28;
+  --ui-color-neutral-900: #151d18;
+  --ui-color-neutral-950: #0d1510;
+
+  /* Override Nuxt UI primary */
+  --ui-primary: #8a8870;
+  --ui-color-primary-50: #f2f1ec;
+  --ui-color-primary-100: #e2e0d6;
+  --ui-color-primary-200: #c5c2b0;
+  --ui-color-primary-300: #a8a58e;
+  --ui-color-primary-400: #8a8870;
+  --ui-color-primary-500: #6a6858;
+  --ui-color-primary-600: #55534a;
+  --ui-color-primary-700: #403f38;
+  --ui-color-primary-800: #2e2d28;
+  --ui-color-primary-900: #1c1b18;
+  --ui-color-primary-950: #0e0e0c;
+
+  /* ─── Dark palette (charbon / olive, bulles #252e2a / #2c3632) ─── */
+  --chat-body: #121a18;
+  --chat-shell: #151d18;
+  --chat-shell-shadow: rgb(0 0 0 / 0.55);
+  --chat-thread: #1a2421;
+  --chat-surface: #1e2824;
+  --chat-surface-hover: #252f2b;
+  --chat-surface-active: #1e2824;
+  --chat-composer: #121a18;
+  --chat-bubble-in: #252e2a;
+  --chat-bubble-out: #2c3632;
+  --chat-border: rgb(255 255 255 / 0.06);
+  --chat-text: #e8e6df;
+  --chat-text-secondary: #9aa399;
+  --chat-text-muted: #6d756f;
+  --chat-accent: #a3c981;
+  --chat-forward-bar: rgb(255 255 255 / 0.14);
+  --chat-forward-quote-bg: rgb(255 255 255 / 0.04);
+  --chat-reply-quote-bg: rgb(255 255 255 / 0.07);
+  --chat-glass: rgb(18 26 24 / 0.72);
+  --chat-glass-border: rgb(255 255 255 / 0.05);
+  --chat-icon: #9aa399;
+  --chat-icon-hover: #252f2b;
+  --chat-modal-overlay: rgb(0 0 0 / 0.78);
+  --chat-scroll-thumb: rgb(255 255 255 / 0.12);
+  --chat-thread-dot: rgb(255 255 255 / 0.025);
+  --chat-bubble-radius: 1.125rem;
 }
 
-.codex-grid {
-  background-image:
-    linear-gradient(to right, rgb(109 128 138 / 0.07) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(109 128 138 / 0.07) 1px, transparent 1px);
-  background-size: 30px 30px;
-}
-
+/* ─── Scene background ─── */
 .wa-scene-blur {
-  background:
-    radial-gradient(45% 55% at 15% 25%, rgb(0 168 132 / 0.34), transparent 62%),
-    radial-gradient(45% 55% at 85% 80%, rgb(0 93 75 / 0.26), transparent 62%),
-    linear-gradient(180deg, #0a0f12 0%, #07090c 100%);
+  background-color: var(--background);
   filter: blur(70px);
-  transform: scale(1.1);
-  opacity: 0.95;
 }
 
-.chat-shell {
-  background-color: #0b141a;
-  box-shadow:
-    0 30px 80px rgb(0 0 0 / 0.48),
-    inset 0 1px 0 rgb(255 255 255 / 0.04);
-}
-
+/* ─── Thread area ─── */
 .chat-thread-bg {
-  background-color: #0b141a;
+  background-color: var(--chat-thread);
   background-image:
-    radial-gradient(circle at 15% 15%, rgb(255 255 255 / 0.028) 0 1px, transparent 1px),
-    radial-gradient(circle at 85% 32%, rgb(255 255 255 / 0.02) 0 1px, transparent 1px),
-    radial-gradient(circle at 55% 78%, rgb(255 255 255 / 0.02) 0 1px, transparent 1px);
+    radial-gradient(circle at 15% 15%, var(--chat-thread-dot) 0 1px, transparent 1px),
+    radial-gradient(circle at 85% 32%, var(--chat-thread-dot) 0 1px, transparent 1px),
+    radial-gradient(circle at 55% 78%, var(--chat-thread-dot) 0 1px, transparent 1px);
   background-size: 28px 28px, 34px 34px, 40px 40px;
+  border-radius: calc(var(--chat-bubble-radius) + calc(var(--spacing) * 3));
 }
 
+/* ─── Glass header/footer ─── */
+.chat-glass {
+  background: var(--chat-glass);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border-color: var(--chat-glass-border);
+}
+
+/* ─── Scrollbar ─── */
 .chat-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgb(111 126 133 / 0.35) transparent;
+  scrollbar-color: var(--chat-scroll-thumb) transparent;
 }
 
 .chat-scroll::-webkit-scrollbar {
@@ -69,7 +168,7 @@
 }
 
 .chat-scroll::-webkit-scrollbar-thumb {
-  background-color: rgb(111 126 133 / 0.35);
+  background-color: var(--chat-scroll-thumb);
   border-radius: 999px;
 }
 
@@ -77,16 +176,54 @@
   background: transparent;
 }
 
+/* ─── Component transitions (fast hover/interaction) ─── */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* ─── Theme transition (slow, toggled via JS) ─── */
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition:
+    background-color 0.6s ease,
+    color 0.6s ease,
+    border-color 0.6s ease,
+    box-shadow 0.6s ease,
+    fill 0.6s ease,
+    stroke 0.6s ease;
+}
+
 @layer base {
   body {
-    @apply min-h-screen bg-[#0a1014] text-slate-100 antialiased;
-    background-image:
-      radial-gradient(80% 60% at 10% 15%, rgb(0 168 132 / 0.18), transparent 70%),
-      radial-gradient(80% 60% at 90% 85%, rgb(0 93 75 / 0.14), transparent 70%),
-      linear-gradient(180deg, #0a1014 0%, #090f13 100%);
+    @apply min-h-screen antialiased;
+    color: var(--chat-text);
+    overflow: hidden;
+    background-color: transparent;
   }
 
   #app {
     @apply min-h-screen;
+    background-color: transparent;
   }
+}
+
+/* Pointer cursor on all interactive elements */
+button:not([disabled]),
+[role="button"]:not([aria-disabled="true"]),
+[role="tab"],
+[role="option"],
+[role="menuitem"] {
+  cursor: pointer;
+}
+
+/* Ensure NuxtUI floating portals (dropdowns, tooltips, popovers) always sit above the app shell */
+[data-reka-popper-content-wrapper] {
+  z-index: 200 !important;
 }

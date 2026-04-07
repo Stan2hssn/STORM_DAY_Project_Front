@@ -1,64 +1,64 @@
 <template>
-  <div class="relative h-screen overflow-hidden p-2 sm:p-4">
-    <div class="pointer-events-none absolute inset-0 wa-scene-blur" />
-    <div class="pointer-events-none absolute inset-0 codex-grid opacity-20" />
+  <div class="relative flex h-screen flex-col overflow-hidden">
+    <!-- Full-width app header — sits above the grid on z-axis -->
+    <header
+      class="chat-shell relative z-10 shrink-0 border-b px-8 py-4"
+      style="border-color: var(--chat-border)"
+    >
+      <slot name="app-header" />
+    </header>
 
-    <main class="relative mx-auto flex h-full w-full max-w-[1680px] overflow-hidden border border-white/10 chat-shell">
-      <ChatSidebar
-        :conversations="conversations"
-        :accounts="accounts"
-        :current-account-id="currentAccountId"
-        :users="users"
-        @select-conversation="(id) => emit('selectConversation', id)"
-        @switch-account="(id) => emit('switchAccount', id)"
-        @create-conversation="(payload) => emit('createConversation', payload)"
-      />
+    <!-- Main grid: sidebar (left) + chat area (right) -->
+    <main
+      class="relative mx-auto grid min-h-0 flex-1 w-full max-w-[1680px] overflow-hidden md:grid-cols-[420px_1fr]"
+      style="grid-template-rows: auto 1fr"
+    >
+      <!-- Left: sidebar spans both rows -->
+      <div
+        class="row-span-2 flex min-h-0 flex-col overflow-hidden border-r"
+        :class="mobileView === 'sidebar' ? 'flex' : 'hidden md:flex'"
+        style="border-color: var(--chat-border)"
+      >
+        <slot name="sidebar" />
+      </div>
 
-      <ChatThread
-        :messages="messages"
-        :chat-name="chatName"
-        :chat-avatar="chatAvatar"
-        :members-label="membersLabel"
-        :system-message="systemMessage"
-        :subtitle="subtitle"
-        @send="(text) => emit('sendMessage', text)"
-      />
+      <!-- Top-right: chat header -->
+      <div
+        class="px-6 py-5"
+        :class="mobileView === 'thread' ? '' : 'hidden md:block'"
+      >
+        <slot name="chat-header" />
+      </div>
 
-      <ChatMembersRail :members="memberRail" />
+      <!-- Bottom-right: chat thread -->
+      <div
+        class="min-h-0 flex flex-col overflow-hidden px-4 pb-5"
+        :class="mobileView === 'thread' ? 'flex' : 'hidden md:flex'"
+      >
+        <slot name="chat-body" />
+      </div>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import ChatMembersRail from '@/components/organisms/ChatMembersRail.vue'
-import ChatSidebar from '@/components/organisms/ChatSidebar.vue'
-import ChatThread from '@/components/organisms/ChatThread.vue'
-import type {
-  Account,
-  Conversation,
-  CreateConversationPayload,
-  DirectoryUser,
-  Message
-} from '@/types/chat'
+import { ref } from 'vue';
 
-defineProps<{
-  conversations: Conversation[]
-  messages: Message[]
-  memberRail: string[]
-  accounts: Account[]
-  currentAccountId: string
-  users: DirectoryUser[]
-  chatName: string
-  chatAvatar: string
-  membersLabel: string
-  systemMessage: string
-  subtitle?: string
+const props = defineProps<{
+  activeConversationId: string | null
 }>()
 
-const emit = defineEmits<{
-  selectConversation: [conversationId: string]
-  switchAccount: [accountId: string]
-  createConversation: [payload: CreateConversationPayload]
-  sendMessage: [text: string]
-}>()
+const mobileView = ref<'sidebar' | 'thread'>(
+  props.activeConversationId ? 'thread' : 'sidebar',
+)
+
+function selectThread() {
+  mobileView.value = 'thread'
+}
+
+function backToSidebar() {
+  mobileView.value = 'sidebar'
+}
+
+defineExpose({ selectThread, backToSidebar })
 </script>

@@ -1,132 +1,167 @@
 <template>
-  <aside class="hidden w-[390px] shrink-0 flex-col border-r border-white/10 bg-[#111b21] md:flex">
-    <div class="border-b border-white/10 px-4 py-4">
-      <div class="mb-3 flex items-center justify-between">
-        <div>
-          <p class="text-2xl font-semibold text-[#e9edef]">
-            Chats
-          </p>
-          <p class="text-xs text-[#8696a0]">
-            {{ currentAccount?.name }} - {{ currentAccount?.role }}
-          </p>
-        </div>
-        <div class="flex items-center gap-1">
-          <UButton
-            icon="i-lucide-square-pen"
-            color="neutral"
-            variant="ghost"
-            :ui="{ base: 'text-[#9fb0ba] hover:bg-[#2a3942]' }"
-            @click="createConversationOpen = true"
-          />
-          <UButton
-            icon="i-lucide-log-out"
-            color="neutral"
-            variant="ghost"
-            :ui="{ base: 'text-[#9fb0ba] hover:bg-[#2a3942]' }"
-            @click="handleLogout"
-          />
-        </div>
-      </div>
-
-      <!-- User connecté -->
-      <div v-if="auth.user" class="mb-3 flex items-center gap-2 rounded-lg bg-[#202c33] px-3 py-2">
-        <div class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white" style="background: #00a884;">
-          {{ auth.user.display_name.slice(0, 2).toUpperCase() }}
-        </div>
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-medium text-[#e9edef]">{{ auth.user.display_name }}</p>
-          <p class="truncate text-xs text-[#8696a0]">@{{ auth.user.username }}</p>
-        </div>
-        <span class="h-2 w-2 rounded-full bg-[#00a884]" title="Connecté" />
-      </div>
-
-      <div class="chat-scroll mb-3 flex gap-2 overflow-x-auto pb-1">
-        <AccountChip
-          v-for="account in props.accounts"
-          :key="account.id"
-          :account="account"
-          :active="props.currentAccountId === account.id"
-          @select="emit('switchAccount', account.id)"
-        />
-      </div>
-
+  <div class="flex h-full flex-col p-5" aria-label="Conversations">
+    <!-- Search + New conversation -->
+    <div class="flex items-center gap-2 pb-4">
       <UInput
         v-model="conversationSearch"
-        placeholder="Search"
+        id="conversation-search"
+        icon="i-lucide-search"
+        placeholder="Search a conversation"
+        size="lg"
+        aria-label="Search conversations"
+        :ui="{ base: 'ring-transparent' }"
+        class="flex-1"
+      />
+      <UButton
+        icon="i-lucide-square-pen"
+        color="neutral"
+        variant="ghost"
         size="md"
-        :ui="{ base: 'bg-[#202c33] ring-transparent text-[#d9dee0] placeholder:text-[#8696a0]' }"
+        class="size-11 shrink-0 justify-center"
+        aria-label="New conversation"
+        @click="createConversationOpen = true"
       />
     </div>
 
-    <div class="chat-scroll flex-1 space-y-1 overflow-y-auto px-2 py-2">
-      <ConversationItem
-        v-for="conversation in filteredConversations"
-        :key="conversation.id"
-        :conversation="conversation"
-        @select="(id) => emit('selectConversation', id)"
-      />
+    <!-- Filters -->
+    <div class="flex gap-1 pb-4" role="tablist" aria-label="Conversation filters">
+      <button
+        v-for="filter in filters"
+        :key="filter.value"
+        role="tab"
+        :aria-selected="activeFilter === filter.value"
+        class="rounded-sm px-3 py-2 text-xs font-medium transition"
+        :class="
+          activeFilter === filter.value
+            ? 'bg-(--chat-user-bubble) text-white'
+            : 'text-(--chat-text-secondary) hover:bg-(--chat-surface-hover)'
+        "
+        @click="activeFilter = filter.value"
+      >
+        {{ filter.label }}
+      </button>
     </div>
+
+    <!-- Conversation list -->
+    <nav class="chat-scroll flex-1 overflow-y-auto py-1" aria-label="Conversation list">
+      <output v-if="loading" class="block py-8 text-center text-sm" style="color: var(--chat-text-secondary)">
+        Loading conversations...
+      </output>
+
+      <p v-else-if="filteredConversations.length === 0" class="py-8 text-center text-sm" style="color: var(--chat-text-secondary)">
+        No conversations yet
+      </p>
+
+      <TransitionGroup v-else name="conv-list" tag="div" class="space-y-1">
+        <ConversationItem
+          v-for="conversation in filteredConversations"
+          :key="conversation.id"
+          :conversation="conversation"
+          :active="conversation.id === activeConversationId"
+          @select="(id) => emit('selectConversation', id)"
+        />
+      </TransitionGroup>
+    </nav>
 
     <CreateConversationPanel
       :open="createConversationOpen"
-      :users="props.users"
       @close="createConversationOpen = false"
       @create="handleCreateConversation"
     />
-  </aside>
+  </div>
 </template>
 
 <script setup lang="ts">
-import AccountChip from '@/components/molecules/AccountChip.vue'
-import ConversationItem from '@/components/molecules/ConversationItem.vue'
-import CreateConversationPanel from '@/components/organisms/CreateConversationPanel.vue'
-import type { Account, Conversation, CreateConversationPayload, DirectoryUser } from '@/types/chat'
-import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
-import { computed, ref } from 'vue'
-
-const auth = useAuthStore()
-const router = useRouter()
+import ConversationItem from '@/components/molecules/ConversationItem.vue';
+import CreateConversationPanel from '@/components/organisms/CreateConversationPanel.vue';
+import type { Conversation, CreateGroupPayload } from '@/types/chat';
+import { computed, ref } from 'vue';
 
 const emit = defineEmits<{
   selectConversation: [conversationId: string]
-  switchAccount: [accountId: string]
-  createConversation: [payload: CreateConversationPayload]
+  createConversation: [payload: CreateGroupPayload]
 }>()
-
-const conversationSearch = ref('')
-const createConversationOpen = ref(false)
 
 const props = defineProps<{
   conversations: Conversation[]
-  accounts: Account[]
-  currentAccountId: string
-  users: DirectoryUser[]
+  activeConversationId: string | null
+  loading: boolean
 }>()
+
+type FilterValue = 'recent' | 'all' | 'archived' | 'favorites'
+
+const filters: { label: string; value: FilterValue }[] = [
+  { label: 'Recent', value: 'recent' },
+  { label: 'All', value: 'all' },
+  { label: 'Archived', value: 'archived' },
+  { label: 'Favorites', value: 'favorites' },
+]
+
+const conversationSearch = ref('')
+const createConversationOpen = ref(false)
+const activeFilter = ref<FilterValue>('recent')
 
 const filteredConversations = computed(() => {
   const search = conversationSearch.value.trim().toLowerCase()
+  let list = props.conversations
 
-  if (!search) {
-    return props.conversations
+  // TODO(feat/conversation-filters): apply activeFilter once backend exposes the fields.
+  // Required API changes:
+  //   - PATCH /api/groups/{id}  → body: { is_archived: boolean } or { is_favorite: boolean }
+  //   - Conversation type must expose `is_archived` and `is_favorite` boolean fields
+  //   - 'recent' → sort by last_message_at DESC (already default, confirm with backend)
+  //   - 'archived' → list.filter(c => c.is_archived)
+  //   - 'favorites' → list.filter(c => c.is_favorite)
+  //   - 'all' → no additional filter
+  if (activeFilter.value === 'archived' || activeFilter.value === 'favorites') {
+    // Placeholder: these filters are UI-only until backend supports is_archived / is_favorite
+    list = []
   }
 
-  return props.conversations.filter((conversation) => {
-    return conversation.name.toLowerCase().includes(search) || conversation.preview.toLowerCase().includes(search)
-  })
+  if (search) {
+    list = list.filter(
+      (c) => c.name.toLowerCase().includes(search) || c.preview.toLowerCase().includes(search),
+    )
+  }
+
+  return list
 })
 
-const currentAccount = computed(() => {
-  return props.accounts.find((account) => account.id === props.currentAccountId) ?? null
-})
-
-function handleCreateConversation(payload: CreateConversationPayload) {
+function handleCreateConversation(payload: CreateGroupPayload) {
   emit('createConversation', payload)
   createConversationOpen.value = false
 }
 
-async function handleLogout() {
-  await auth.logout()
-  router.push('/login')
+function openCreate() {
+  createConversationOpen.value = true
 }
+
+defineExpose({ openCreate })
 </script>
+
+<style scoped>
+.conv-list-enter-active {
+  transition:
+    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.conv-list-enter-from {
+  opacity: 0;
+  transform: translateX(-12px);
+}
+
+.conv-list-move {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.conv-list-leave-active {
+  transition: opacity 0.15s ease-in;
+  position: absolute;
+  width: 100%;
+}
+
+.conv-list-leave-to {
+  opacity: 0;
+}
+</style>

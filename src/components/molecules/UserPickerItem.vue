@@ -1,38 +1,56 @@
 <template>
   <button
-    class="flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition"
-    :class="selected
-      ? 'border-[#00a884]/60 bg-[#00a884]/14'
-      : 'border-white/8 bg-[#111b21] hover:bg-[#1a262e]'"
+    class="flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition user-picker-item"
+    :class="selected ? 'user-picker-selected' : 'user-picker-default'"
+    :aria-pressed="selected"
+    :aria-label="`${user.displayName} (@${user.username})${selected ? ', selected' : ''}`"
     @click="$emit('toggle')"
   >
-    <BaseAvatar :text="user.avatar" size="sm" :status="user.status === 'online'" />
+    <BaseAvatar :text="initials" size="sm" aria-hidden="true" />
     <div class="min-w-0 flex-1">
-      <p class="truncate text-sm font-medium text-[#d9dee0]">
-        {{ user.name }}
+      <p class="truncate text-sm font-medium" :style="{ color: 'var(--chat-text)' }">
+        {{ user.displayName }}
       </p>
-      <p class="truncate text-xs text-[#8696a0]">
-        {{ user.handle }}
+      <p class="truncate text-xs" :style="{ color: 'var(--chat-text-muted)' }">
+        @{{ user.username }}
       </p>
     </div>
     <UIcon
       :name="selected ? 'i-lucide-check-circle-2' : 'i-lucide-circle'"
       class="h-4 w-4"
-      :class="selected ? 'text-[#00a884]' : 'text-[#5f6b73]'"
+      :style="{ color: selected ? 'var(--chat-accent)' : 'var(--chat-text-muted)' }"
+      aria-hidden="true"
     />
   </button>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import BaseAvatar from '@/components/atoms/BaseAvatar.vue'
-import type { DirectoryUser } from '@/types/chat'
+import type { ChatUser } from '@/types/chat'
 
-defineProps<{
-  user: DirectoryUser
+const props = defineProps<{
+  user: ChatUser
   selected: boolean
 }>()
 
 defineEmits<{
   toggle: []
 }>()
+
+const initials = computed(() => props.user.displayName.slice(0, 2).toUpperCase())
 </script>
+
+<style scoped>
+.user-picker-selected {
+  border-color: color-mix(in srgb, var(--chat-accent) 60%, transparent);
+  background-color: color-mix(in srgb, var(--chat-accent) 14%, transparent);
+}
+.user-picker-default {
+  border-color: var(--chat-border);
+  background-color: var(--chat-surface);
+}
+.user-picker-default:hover {
+  background-color: var(--chat-surface-hover);
+}
+</style>

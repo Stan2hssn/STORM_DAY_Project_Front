@@ -1,58 +1,74 @@
 <template>
   <Teleport to="body">
-    <Transition
-      enter-active-class="duration-200 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="duration-150 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
+    <Transition name="modal-overlay">
       <div
         v-if="open"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-[#03070c]/78 px-4 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center px-4 backdrop-blur-sm"
+        :style="{ backgroundColor: 'var(--chat-modal-overlay)' }"
       >
-        <div class="w-full max-w-xl rounded-2xl border border-white/10 bg-[#101b22] shadow-2xl">
-          <header class="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <Transition name="modal-panel" appear>
+          <div
+            class="w-full max-w-xl rounded-2xl border shadow-2xl"
+            :style="{ backgroundColor: 'var(--chat-shell)', borderColor: 'var(--chat-border)' }"
+          >
+          <header class="flex items-center justify-between border-b px-5 py-4" :style="{ borderColor: 'var(--chat-border)' }">
             <div>
-              <p class="text-lg font-semibold text-[#e9edef]">
+              <p class="text-lg font-semibold" :style="{ color: 'var(--chat-text)' }">
                 New conversation
               </p>
-              <p class="text-xs text-[#8696a0]">
-                Search one user or multiple users, then create.
+              <p class="text-xs" :style="{ color: 'var(--chat-text-muted)' }">
+                Search users, select one or more, then create.
               </p>
             </div>
-            <UButton icon="i-lucide-x" color="neutral" variant="ghost" @click="handleClose" />
+            <UButton icon="i-lucide-x" color="neutral" variant="ghost" size="md" class="size-11 shrink-0 justify-center" @click="handleClose" />
           </header>
 
           <div class="space-y-3 p-5">
             <UInput
               v-model="query"
               placeholder="Search users..."
-              :ui="{ base: 'bg-[#172833] ring-white/10 text-[#d9dee0] placeholder:text-[#6f7c85]' }"
+              :ui="{ base: 'ring-transparent' }"
+              :style="{ backgroundColor: 'var(--chat-surface)', color: 'var(--chat-text)' }"
             />
 
             <UInput
               v-if="isGroup"
               v-model="groupName"
               placeholder="Group name (optional)"
-              :ui="{ base: 'bg-[#172833] ring-white/10 text-[#d9dee0] placeholder:text-[#6f7c85]' }"
+              :ui="{ base: 'ring-transparent' }"
+              :style="{ backgroundColor: 'var(--chat-surface)', color: 'var(--chat-text)' }"
             />
 
             <div class="chat-scroll max-h-[340px] space-y-2 overflow-y-auto pr-1">
+              <p v-if="!query.trim()" class="py-6 text-center text-sm" :style="{ color: 'var(--chat-text-muted)' }">
+                Type a name or username to search
+              </p>
+
+              <p v-else-if="searching" class="py-6 text-center text-sm" :style="{ color: 'var(--chat-text-muted)' }">
+                Searching...
+              </p>
+
+              <p v-else-if="searchError" class="py-6 text-center text-sm text-red-500">
+                {{ searchError }}
+              </p>
+
+              <p v-else-if="searchResults.length === 0" class="py-6 text-center text-sm" :style="{ color: 'var(--chat-text-muted)' }">
+                No users found
+              </p>
+
               <UserPickerItem
-                v-for="user in filteredUsers"
+                v-for="user in searchResults"
                 :key="user.id"
                 :user="user"
-                :selected="selectedIds.includes(user.id)"
-                @toggle="toggleUser(user.id)"
+                :selected="selectedUsers.has(user.id)"
+                @toggle="toggleUser(user)"
               />
             </div>
           </div>
 
-          <footer class="flex items-center justify-between border-t border-white/10 px-5 py-4">
-            <p class="text-xs text-[#8696a0]">
-              {{ selectedIds.length }} selected
+          <footer class="flex items-center justify-between border-t px-5 py-4" :style="{ borderColor: 'var(--chat-border)' }">
+            <p class="text-xs" :style="{ color: 'var(--chat-text-muted)' }">
+              {{ selectedUsers.size }} selected
             </p>
             <div class="flex items-center gap-2">
               <UButton label="Cancel" color="neutral" variant="ghost" @click="handleClose" />
@@ -65,6 +81,7 @@
             </div>
           </footer>
         </div>
+        </Transition>
       </div>
     </Transition>
   </Teleport>
@@ -72,81 +89,92 @@
 
 <script setup lang="ts">
 import UserPickerItem from '@/components/molecules/UserPickerItem.vue'
-import type { CreateConversationPayload, DirectoryUser } from '@/types/chat'
+import type { ChatUser, CreateGroupPayload, UserSearchDto } from '@/types/chat'
 import { api } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps<{
   open: boolean
-  users: DirectoryUser[]
 }>()
 
 const emit = defineEmits<{
   close: []
-  create: [payload: CreateConversationPayload]
+  create: [payload: CreateGroupPayload]
 }>()
 
 const auth = useAuthStore()
 const query = ref('')
 const groupName = ref('')
-const selectedIds = ref<string[]>([])
-const searchResults = ref<DirectoryUser[]>([])
-
-interface SearchUser {
-  id: string
-  username: string
-  display_name: string
-  avatar_url?: string
-}
+const selectedUsers = ref<Map<string, ChatUser>>(new Map())
+const searchResults = ref<ChatUser[]>([])
+const searching = ref(false)
+const searchError = ref<string | null>(null)
 
 async function searchUsers(q: string) {
   if (!q.trim()) {
     searchResults.value = []
+    searchError.value = null
     return
   }
+
+  searching.value = true
+  searchError.value = null
   try {
-    const results = await api.get<SearchUser[]>(`/users/search?q=${encodeURIComponent(q)}`)
+    const results = await api.get<UserSearchDto[]>(
+      `/users/search?q=${encodeURIComponent(q)}`,
+    )
+    if (!Array.isArray(results)) {
+      console.error('[CreateConversationPanel] unexpected response shape:', results)
+      searchError.value = 'Unexpected response from server'
+      searchResults.value = []
+      return
+    }
     searchResults.value = results
       .filter((u) => u.id !== auth.user?.id)
       .map((u) => ({
         id: u.id,
-        name: u.display_name,
-        handle: u.username,
-        avatar: u.display_name.slice(0, 2).toUpperCase(),
-        status: 'offline' as const,
+        username: u.username,
+        displayName: u.display_name,
+        avatarUrl: u.avatar_url,
       }))
-  } catch {
+  } catch (err) {
+    console.error('[CreateConversationPanel] user search failed:', err)
+    searchError.value = err instanceof Error ? err.message : 'Search failed'
     searchResults.value = []
+  } finally {
+    searching.value = false
   }
 }
 
-let debounceTimer: ReturnType<typeof setTimeout>
+let debounceTimer: ReturnType<typeof setTimeout> | undefined
 watch(query, (val) => {
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => searchUsers(val), 300)
 })
 
-const filteredUsers = computed(() =>
-  query.value.trim() ? searchResults.value : props.users
-)
-
-const isGroup = computed(() => selectedIds.value.length > 1)
-const canCreate = computed(() => selectedIds.value.length > 0)
+const isGroup = computed(() => selectedUsers.value.size > 1)
+const canCreate = computed(() => selectedUsers.value.size > 0)
 
 function resetState() {
+  clearTimeout(debounceTimer)
+  debounceTimer = undefined
   query.value = ''
   groupName.value = ''
-  selectedIds.value = []
+  selectedUsers.value = new Map()
   searchResults.value = []
+  searching.value = false
+  searchError.value = null
 }
 
-function toggleUser(userId: string) {
-  if (selectedIds.value.includes(userId)) {
-    selectedIds.value = selectedIds.value.filter((id) => id !== userId)
-    return
+function toggleUser(user: ChatUser) {
+  const next = new Map(selectedUsers.value)
+  if (next.has(user.id)) {
+    next.delete(user.id)
+  } else {
+    next.set(user.id, user)
   }
-  selectedIds.value = [...selectedIds.value, userId]
+  selectedUsers.value = next
 }
 
 function handleClose() {
@@ -156,9 +184,14 @@ function handleClose() {
 
 function handleCreate() {
   if (!canCreate.value) return
+
+  const users = [...selectedUsers.value.values()]
+
+  // Server generates the display name from members automatically.
+  // Only send a custom name if the user explicitly typed one for a group.
   emit('create', {
-    participantIds: selectedIds.value,
-    name: isGroup.value ? groupName.value.trim() : undefined
+    name: isGroup.value ? groupName.value.trim() : '',
+    memberIds: users.map((u) => u.id),
   })
   resetState()
 }
@@ -167,3 +200,29 @@ watch(() => props.open, (isOpen) => {
   if (!isOpen) resetState()
 })
 </script>
+
+<style scoped>
+.modal-overlay-enter-active { transition: opacity 0.25s ease-out; }
+.modal-overlay-leave-active { transition: opacity 0.2s ease-in; }
+.modal-overlay-enter-from,
+.modal-overlay-leave-to { opacity: 0; }
+
+.modal-panel-enter-active {
+  transition:
+    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal-panel-leave-active {
+  transition:
+    opacity 0.2s ease-in,
+    transform 0.2s ease-in;
+}
+.modal-panel-enter-from {
+  opacity: 0;
+  transform: scale(0.95) translateY(8px);
+}
+.modal-panel-leave-to {
+  opacity: 0;
+  transform: scale(0.97);
+}
+</style>

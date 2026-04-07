@@ -100,5 +100,41 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { accessToken, refreshToken, user, isAuthenticated, login, register, refresh, logout, clear, setTokens }
+  async function updateProfile(displayName: string): Promise<void> {
+    if (!user.value) throw new Error('Not authenticated')
+    const res = await fetch(`/users/${user.value.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken.value}`,
+      },
+      body: JSON.stringify({ display_name: displayName }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(typeof data.message === 'string' ? data.message : 'Failed to update profile')
+    }
+    const updated = await res.json().catch(() => ({}))
+    const newDisplayName = updated.display_name ?? updated.user?.display_name ?? displayName
+    user.value = { ...user.value, display_name: newDisplayName }
+    localStorage.setItem('user', JSON.stringify(user.value))
+  }
+
+  async function updatePassword(currentPassword: string, newPassword: string): Promise<void> {
+    if (!user.value) throw new Error('Not authenticated')
+    const res = await fetch(`/users/${user.value.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken.value}`,
+      },
+      body: JSON.stringify({ current_password: currentPassword, password: newPassword }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(typeof data.message === 'string' ? data.message : 'Failed to update password')
+    }
+  }
+
+  return { accessToken, refreshToken, user, isAuthenticated, login, register, refresh, logout, clear, setTokens, updateProfile, updatePassword }
 })
