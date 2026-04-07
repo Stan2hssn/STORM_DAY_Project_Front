@@ -81,7 +81,7 @@
       </div>
 
       <!-- Ajouter un membre (admin/owner, groupes seulement) -->
-      <div v-if="!is1on1" class="border-b border-white/10 px-4 py-3">
+      <div v-if="props.conversation" class="border-b border-white/10 px-4 py-3">
         <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8696a0]">Ajouter un membre</p>
         <div class="flex gap-2">
           <input
@@ -310,6 +310,7 @@ interface ApiUser {
 const props = defineProps<{
   open: boolean
   conversation: Conversation | null
+  isGroup?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -375,7 +376,10 @@ function openLightbox(index: number) {
 
 // ── Détection 1-on-1 ──────────────────────────────────────────────────────────
 
-const is1on1 = computed(() => !loading.value && members.value.length <= 2)
+const is1on1 = computed(() => {
+  if (props.isGroup !== undefined) return !props.isGroup
+  return !loading.value && members.value.length <= 2
+})
 
 const otherContact = computed(() => {
   if (!is1on1.value) return null

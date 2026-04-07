@@ -143,6 +143,7 @@
   <ConversationInfoPanel
     :open="infoOpen"
     :conversation="chatStore.activeConversation"
+    :is-group="isGroup"
     @close="infoOpen = false"
     @leave="infoOpen = false"
     @delete="handleDeleteConversation"
